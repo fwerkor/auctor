@@ -62,9 +62,6 @@ export function LoginPage({ onAuthenticated }: Props) {
                 <BrandMark size={52} />
               </Box>
               <Typography variant="h4">Sign in to {brand.site_name}</Typography>
-              <Typography color="text.secondary" sx={{ mt: 1 }}>
-                One account for your applications and infrastructure.
-              </Typography>
             </Box>
             {error && <Alert severity="error">Incorrect username, email, or password.</Alert>}
             <Box component="form" onSubmit={submit}>
