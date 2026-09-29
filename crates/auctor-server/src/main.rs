@@ -85,6 +85,8 @@ async fn main() -> anyhow::Result<()> {
             .unwrap_or(168),
         http: reqwest::Client::builder()
             .user_agent("Auctor/0.1 avatar proxy")
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(std::time::Duration::from_secs(8))
             .build()?,
         setup_token,
         setup_token_path,

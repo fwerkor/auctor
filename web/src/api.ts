@@ -1,4 +1,4 @@
-import type { Application, AuditEvent, Branding, Group, Me, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
+import type { Application, AuditEvent, AvatarSettings, Branding, Group, Me, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -21,8 +21,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   config: () => request<Branding>('/api/config'),
-  updateBranding: (payload: Branding) =>
+  updateBranding: (payload: Pick<Branding, 'site_name' | 'site_url' | 'logo_url'>) =>
     request<Branding>('/api/admin/branding', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  avatarSettings: () => request<AvatarSettings>('/api/admin/avatar-settings'),
+  updateAvatarSettings: (payload: AvatarSettings) =>
+    request<AvatarSettings>('/api/admin/avatar-settings', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

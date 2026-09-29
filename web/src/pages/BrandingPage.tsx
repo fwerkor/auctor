@@ -1,4 +1,4 @@
-import { AddRounded, DeleteOutlineRounded, OpenInNewRounded, PaletteRounded, ShieldOutlined } from '@mui/icons-material'
+import { AddRounded, DeleteOutlineRounded, OpenInNewRounded, PaletteRounded, PersonRounded, ShieldOutlined } from '@mui/icons-material'
 import {
   Alert,
   Box,
@@ -7,13 +7,14 @@ import {
   CardContent,
   Stack,
   IconButton,
+  MenuItem,
   TextField,
   Typography,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
-import type { Branding, ReservedUsername } from '../types'
+import type { AvatarSettings, Branding, ReservedUsername } from '../types'
 
 export function BrandingPage() {
   const { brand, refresh } = useBrand()
@@ -22,10 +23,24 @@ export function BrandingPage() {
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [reserved, setReserved] = useState<ReservedUsername[]>([])
+  const [avatarDraft, setAvatarDraft] = useState<AvatarSettings>({
+    avatar_source_template: brand.avatar_source_template,
+    avatar_delivery: brand.avatar_delivery,
+  })
+  const [avatarSaved, setAvatarSaved] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
   const [newUsername, setNewUsername] = useState('')
   const [newNote, setNewNote] = useState('')
 
-  useEffect(() => setDraft(brand), [brand])
+  useEffect(() => {
+    setDraft(brand)
+  }, [brand])
+
+  async function loadAvatarSettings() {
+    const result = await api.avatarSettings()
+    setAvatarDraft(result)
+  }
 
   async function loadReserved() {
     const result = await api.reservedUsernames()
@@ -33,6 +48,7 @@ export function BrandingPage() {
   }
 
   useEffect(() => {
+    loadAvatarSettings()
     loadReserved()
   }, [])
 
@@ -55,12 +71,30 @@ export function BrandingPage() {
     }
   }
 
+  async function saveAvatarSettings() {
+    setAvatarBusy(true)
+    setAvatarError(false)
+    setAvatarSaved(false)
+    try {
+      await api.updateAvatarSettings({
+        avatar_source_template: avatarDraft.avatar_source_template.trim(),
+        avatar_delivery: avatarDraft.avatar_delivery,
+      })
+      await Promise.all([refresh(), loadAvatarSettings()])
+      setAvatarSaved(true)
+    } catch {
+      setAvatarError(true)
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
   return (
     <Stack spacing={2.5}>
       <Box>
         <Typography variant="h4">Settings</Typography>
         <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-          Configure public branding and account naming policy.
+          Configure public branding, avatar delivery, and account naming policy.
         </Typography>
       </Box>
 
@@ -142,6 +176,90 @@ export function BrandingPage() {
                   </Button>
                 )}
                 <PaletteRounded color="action" sx={{ mt: 1 }} />
+              </Stack>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Box sx={{ pt: 1 }}>
+        <Typography variant="h6">Avatars</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+          Choose where user avatars come from and whether browsers contact that source directly.
+        </Typography>
+      </Box>
+
+      {avatarSaved && <Alert severity="success">Avatar settings updated.</Alert>}
+      {avatarError && (
+        <Alert severity="error">
+          Could not save avatar settings. Use an HTTPS template containing {'{email}'} or {'{email_md5}'}.
+        </Alert>
+      )}
+
+      <Card sx={{ borderRadius: 2 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
+            <Stack spacing={2.25} sx={{ flex: 1 }}>
+              <TextField
+                label="Avatar source URL template"
+                value={avatarDraft.avatar_source_template}
+                onChange={(event) =>
+                  setAvatarDraft({ ...avatarDraft, avatar_source_template: event.target.value })
+                }
+                helperText="HTTPS only. Supported placeholders: {email_md5}, {email}, and {size}."
+              />
+              <TextField
+                select
+                label="Delivery"
+                value={avatarDraft.avatar_delivery}
+                onChange={(event) =>
+                  setAvatarDraft({
+                    ...avatarDraft,
+                    avatar_delivery: event.target.value as 'direct' | 'proxy',
+                  })
+                }
+                helperText={
+                  avatarDraft.avatar_delivery === 'direct'
+                    ? 'Direct: the browser loads avatars from the configured source.'
+                    : 'Proxy: Auctor fetches avatars server-side and the browser only contacts Auctor.'
+                }
+              >
+                <MenuItem value="direct">Direct link</MenuItem>
+                <MenuItem value="proxy">Reverse proxy</MenuItem>
+              </TextField>
+              <Button
+                variant="contained"
+                onClick={saveAvatarSettings}
+                disabled={avatarBusy || !avatarDraft.avatar_source_template.trim()}
+                sx={{ alignSelf: 'flex-end' }}
+              >
+                Save avatar settings
+              </Button>
+            </Stack>
+
+            <Box
+              sx={{
+                width: { xs: '100%', md: 280 },
+                minHeight: 180,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'background.default',
+                p: 3,
+              }}
+            >
+              <Stack alignItems="center" spacing={1.25} textAlign="center">
+                <PersonRounded color="primary" sx={{ fontSize: 48 }} />
+                <Typography fontWeight={600}>
+                  {avatarDraft.avatar_delivery === 'proxy' ? 'Reverse proxy' : 'Direct link'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {avatarDraft.avatar_delivery === 'proxy'
+                    ? 'Avatar requests stay behind this Auctor deployment.'
+                    : 'The browser contacts the avatar provider directly.'}
+                </Typography>
               </Stack>
             </Box>
           </Stack>

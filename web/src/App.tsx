@@ -263,7 +263,7 @@ function AdminShell({
                 Platform admin
               </Typography>
             </Box>
-            <UserAvatar userId={me.id} name={me.display_name} size={36} />
+            <UserAvatar userId={me.id} email={me.email} name={me.display_name} size={36} />
           </Stack>
         </Toolbar>
       </AppBar>

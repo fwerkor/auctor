@@ -2,6 +2,13 @@ export type Branding = {
   site_name: string
   site_url: string
   logo_url: string
+  avatar_source_template: string
+  avatar_delivery: 'direct' | 'proxy'
+}
+
+export type AvatarSettings = {
+  avatar_source_template: string
+  avatar_delivery: 'direct' | 'proxy'
 }
 
 export type ReservedUsername = {

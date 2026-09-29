@@ -111,7 +111,7 @@ export function AccountPage({
       <Card sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} alignItems={{ sm: 'center' }}>
-            <UserAvatar userId={me.id} name={me.display_name} size={80} />
+            <UserAvatar userId={me.id} email={me.email} name={me.display_name} size={80} />
             <Box sx={{ flex: 1 }}>
               <Typography variant="h5">{me.display_name}</Typography>
               <Typography color="text.secondary" sx={{ mt: 0.3 }}>

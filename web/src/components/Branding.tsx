@@ -7,6 +7,8 @@ const fallback: Branding = {
   site_name: 'Auctor',
   site_url: '',
   logo_url: '/brand/auctor.svg',
+  avatar_source_template: 'https://www.gravatar.com/avatar/{email_md5}?s={size}&d=404',
+  avatar_delivery: 'direct',
 }
 
 const BrandContext = createContext<{
@@ -27,6 +29,10 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
         site_name: value.site_name || fallback.site_name,
         site_url: value.site_url,
         logo_url: value.logo_url || fallback.logo_url,
+        avatar_source_template:
+          value.avatar_source_template || fallback.avatar_source_template,
+        avatar_delivery:
+          value.avatar_delivery === 'proxy' ? 'proxy' : 'direct',
       })
     } catch {
       setBrand(fallback)

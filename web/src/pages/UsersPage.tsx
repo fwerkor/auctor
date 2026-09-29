@@ -260,7 +260,7 @@ export function UsersPage() {
                 </TableCell>
                 <TableCell>
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <UserAvatar userId={user.id} name={user.display_name} />
+                    <UserAvatar userId={user.id} email={user.email} name={user.display_name} />
                     <Box>
                       <Typography fontWeight={600}>{user.display_name}</Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -574,7 +574,7 @@ function UserDrawer({
       <Stack sx={{ height: '100%' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 2.5 }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <UserAvatar userId={draft.id} name={draft.display_name} size={44} />
+            <UserAvatar userId={draft.id} email={draft.email} name={draft.display_name} size={44} />
             <Box>
               <Typography fontWeight={600}>{draft.display_name}</Typography>
               <Typography variant="body2" color="text.secondary">
