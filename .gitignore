@@ -1,4 +1,7 @@
 /target
+/web/node_modules
+/web-dist
+/web/*.tsbuildinfo
 .env
 .env.*
 !.env.example
