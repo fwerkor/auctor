@@ -78,17 +78,16 @@ async fn main() -> anyhow::Result<()> {
         .merge(admin::router())
         .merge(avatar::router());
 
+    let web_dir = env::var("AUCTOR_WEB_DIR").unwrap_or_else(|_| "web-dist".into());
+    let assets_dir = format!("{web_dir}/assets");
+    let index_file = format!("{web_dir}/index.html");
+
     let app = Router::new()
         .route("/health", get(health))
         .route("/.well-known/openid-configuration", get(discovery))
         .nest("/api", api)
-        .fallback_service({
-            let web_dir = env::var("AUCTOR_WEB_DIR").unwrap_or_else(|_| "web-dist".into());
-            let index = format!("{web_dir}/index.html");
-            ServeDir::new(web_dir)
-                .append_index_html_on_directories(true)
-                .not_found_service(ServeFile::new(index))
-        })
+        .nest_service("/assets", ServeDir::new(assets_dir))
+        .fallback_service(ServeFile::new(index_file))
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 
