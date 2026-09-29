@@ -26,3 +26,26 @@ password needs to be stored in a service environment file.
 Do not expose a pre-alpha Auctor instance as the authoritative identity
 provider for critical applications until OAuth/OIDC conformance, MFA, recovery,
 rate limiting, key rotation, and security review are complete.
+
+## Public branding
+
+After first sign-in, open Branding in the administrator console and set:
+
+- the public site name;
+- the canonical HTTPS site URL;
+- a local or HTTPS logo URL.
+
+The canonical site URL must be configured before OAuth metadata can be used.
+
+## WordPress SSO
+
+The official plugin lives under integrations/wordpress/auctor-sso.
+
+It uses Authorization Code + PKCE and deliberately stores no client secret. Register the
+WordPress callback URI as an Auctor web application, then configure the plugin with the Auctor
+public URL and client ID.
+
+Existing WordPress users are linked by Auctor subject ID after the first successful login, with
+username/email used only to find an existing account during that initial link. New users can be
+created with the site's normal default role. The plugin never promotes a user to WordPress
+administrator based on an Auctor role.

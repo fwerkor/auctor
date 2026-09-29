@@ -56,6 +56,7 @@ async fn create_first_admin(
     let display_name = payload.display_name.trim();
 
     validate_identity(username, email, display_name)?;
+    crate::username_policy::ensure_allowed(&state.db, username).await?;
     let password_hash = hash_password(&payload.password).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     let mut tx = state

@@ -34,7 +34,7 @@ export function AuditPage() {
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 5,
+          borderRadius: 2,
           overflow: 'hidden',
         }}
       >

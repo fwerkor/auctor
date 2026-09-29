@@ -7,6 +7,7 @@ import {
   MenuRounded,
   PeopleRounded,
   PolicyRounded,
+  PaletteRounded,
   SearchRounded,
 } from '@mui/icons-material'
 import {
@@ -30,6 +31,7 @@ import { useTheme } from '@mui/material/styles'
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api'
+import { BrandMark, useBrand } from './components/Branding'
 import { UserAvatar } from './components/UserAvatar'
 import { LoginPage } from './pages/LoginPage'
 import { SetupPage } from './pages/SetupPage'
@@ -55,6 +57,9 @@ const ApplicationsPage = lazy(() =>
 const AuditPage = lazy(() =>
   import('./pages/AuditPage').then((module) => ({ default: module.AuditPage })),
 )
+const BrandingPage = lazy(() =>
+  import('./pages/BrandingPage').then((module) => ({ default: module.BrandingPage })),
+)
 
 const nav = [
   { path: '/', label: 'Overview', icon: DashboardRounded },
@@ -62,6 +67,7 @@ const nav = [
   { path: '/access', label: 'Access', icon: AdminPanelSettingsRounded },
   { path: '/applications', label: 'Applications', icon: AppsRounded },
   { path: '/audit', label: 'Audit log', icon: PolicyRounded },
+  { path: '/branding', label: 'Branding', icon: PaletteRounded },
   { path: '/account', label: 'My account', icon: AccountCircleRounded },
 ]
 
@@ -139,6 +145,7 @@ function AdminShell({
   onLogout: () => void
   onRefresh: () => Promise<void>
 }) {
+  const { brand } = useBrand()
   const theme = useTheme()
   const mobile = useMediaQuery(theme.breakpoints.down('md'))
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -148,24 +155,10 @@ function AdminShell({
   const drawer = (
     <Stack sx={{ height: '100%', p: 1.5 }}>
       <Stack direction="row" alignItems="center" spacing={1.4} sx={{ px: 1.5, height: 64 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 2.5,
-            bgcolor: 'primary.main',
-            color: 'white',
-            display: 'grid',
-            placeItems: 'center',
-            fontWeight: 700,
-            fontSize: 20,
-          }}
-        >
-          A
-        </Box>
+        <BrandMark size={36} />
         <Box>
           <Typography fontWeight={600} lineHeight={1.1}>
-            Auctor
+            {brand.site_name}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Administration
@@ -182,7 +175,7 @@ function AdminShell({
               setDrawerOpen(false)
             }}
             sx={{
-              borderRadius: 4,
+              borderRadius: 1.5,
               mb: 0.5,
               minHeight: 48,
               '&.Mui-selected': {
@@ -202,7 +195,7 @@ function AdminShell({
       <Box sx={{ flex: 1 }} />
       <Divider sx={{ mb: 1 }} />
       <ListItemButton
-        sx={{ borderRadius: 4 }}
+        sx={{ borderRadius: 1.5 }}
         onClick={async () => {
           await api.logout()
           onLogout()
@@ -242,7 +235,7 @@ function AdminShell({
               maxWidth: 720,
               height: 48,
               bgcolor: '#eef3f8',
-              borderRadius: 6,
+              borderRadius: 2,
               display: { xs: 'none', sm: 'flex' },
               alignItems: 'center',
               px: 2,
@@ -251,9 +244,9 @@ function AdminShell({
           >
             <SearchRounded fontSize="small" />
             <InputBase
-              placeholder="Search Auctor"
+              placeholder={'Search ' + brand.site_name}
               sx={{ ml: 1.2, flex: 1 }}
-              inputProps={{ 'aria-label': 'Search Auctor' }}
+              inputProps={{ 'aria-label': 'Search ' + brand.site_name }}
             />
           </Box>
           <Box sx={{ flex: { xs: 1, sm: 0 } }} />
@@ -318,6 +311,7 @@ function AdminShell({
               <Route path="/access" element={<AccessPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
               <Route path="/audit" element={<AuditPage />} />
+              <Route path="/branding" element={<BrandingPage />} />
               <Route
                 path="/account"
                 element={

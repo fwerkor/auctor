@@ -7,12 +7,16 @@ mod admin_roles;
 mod admin_sessions;
 mod auth;
 mod avatar;
+mod branding;
 mod db;
 mod model;
+mod oauth;
+mod security;
 mod setup;
+mod username_policy;
 
 use anyhow::Context;
-use axum::{Json, Router, routing::get};
+use axum::{Json, Router, extract::DefaultBodyLimit, middleware, routing::get};
 use serde::Serialize;
 use sqlx::PgPool;
 use std::{env, net::SocketAddr, path::PathBuf};
@@ -30,6 +34,7 @@ pub struct AppState {
     pub http: reqwest::Client,
     pub setup_token: Option<String>,
     pub setup_token_path: PathBuf,
+    pub rate_limiter: security::RateLimiter,
 }
 
 #[derive(Serialize)]
@@ -49,9 +54,9 @@ async fn health() -> Json<Health<'static>> {
 
 async fn discovery() -> Json<serde_json::Value> {
     Json(serde_json::json!({
-        "issuer": null,
-        "status": "not_configured",
-        "message": "OIDC provider endpoints are not enabled in this pre-alpha build"
+        "status": "oauth_only",
+        "message": "OAuth 2.0 Authorization Code + PKCE is enabled. OpenID Connect ID tokens are not enabled yet.",
+        "oauth_authorization_server_metadata": "/.well-known/oauth-authorization-server"
     }))
 }
 
@@ -83,6 +88,7 @@ async fn main() -> anyhow::Result<()> {
             .build()?,
         setup_token,
         setup_token_path,
+        rate_limiter: security::RateLimiter::new(),
     };
 
     let api = Router::new()
@@ -95,18 +101,28 @@ async fn main() -> anyhow::Result<()> {
         .merge(admin_roles::router())
         .merge(admin_sessions::router())
         .merge(avatar::router())
-        .merge(setup::router());
+        .merge(branding::router())
+        .merge(setup::router())
+        .merge(username_policy::router());
 
     let web_dir = env::var("AUCTOR_WEB_DIR").unwrap_or_else(|_| "web-dist".into());
     let assets_dir = format!("{web_dir}/assets");
+    let brand_dir = format!("{web_dir}/brand");
     let index_file = format!("{web_dir}/index.html");
 
     let app = Router::new()
         .route("/health", get(health))
         .route("/.well-known/openid-configuration", get(discovery))
+        .merge(oauth::router())
         .nest("/api", api)
         .nest_service("/assets", ServeDir::new(assets_dir))
+        .nest_service("/brand", ServeDir::new(brand_dir))
         .fallback_service(ServeFile::new(index_file))
+        .layer(DefaultBodyLimit::max(128 * 1024))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            security::middleware,
+        ))
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 

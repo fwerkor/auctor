@@ -35,7 +35,7 @@ export function DashboardPage() {
       <Grid container spacing={2}>
         {cards.map(({ key, label, icon: Icon }) => (
           <Grid key={key} size={{ xs: 12, sm: 6, xl: 3 }}>
-            <Card sx={{ height: '100%', borderRadius: 5 }}>
+            <Card sx={{ height: '100%', borderRadius: 2 }}>
               <CardContent sx={{ p: 3 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                   <Box>
@@ -50,7 +50,7 @@ export function DashboardPage() {
                     sx={{
                       width: 44,
                       height: 44,
-                      borderRadius: 3,
+                      borderRadius: 1.5,
                       bgcolor: '#e8f0fe',
                       color: '#0b57d0',
                       display: 'grid',
@@ -65,16 +65,6 @@ export function DashboardPage() {
           </Grid>
         ))}
       </Grid>
-
-      <Card sx={{ borderRadius: 5 }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6">Security posture</Typography>
-          <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-            Auctor keeps administrator privileges as roles on ordinary accounts. Sessions can be
-            revoked centrally, and all privileged user changes are written to the audit log.
-          </Typography>
-        </CardContent>
-      </Card>
     </Stack>
   )
 }

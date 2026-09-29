@@ -1,3 +1,9 @@
+export type Branding = {
+  site_name: string
+  site_url: string
+  logo_url: string
+}
+
 export type Me = {
   id: string
   session_id: string

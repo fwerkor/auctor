@@ -19,7 +19,7 @@ export const theme = createTheme({
     divider: '#e3e7ec',
   },
   shape: {
-    borderRadius: 16,
+    borderRadius: 8,
   },
   typography: {
     fontFamily: '"Google Sans", "Roboto", "Helvetica Neue", Arial, sans-serif',
@@ -31,7 +31,7 @@ export const theme = createTheme({
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 20, paddingInline: 18, minHeight: 40 },
+        root: { borderRadius: 8, paddingInline: 18, minHeight: 40 },
       },
     },
     MuiCard: {
@@ -41,12 +41,12 @@ export const theme = createTheme({
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: { borderRadius: 14 },
+        root: { borderRadius: 10 },
       },
     },
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: 10, fontWeight: 500 },
+        root: { borderRadius: 8, fontWeight: 500 },
       },
     },
   },

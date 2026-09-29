@@ -188,6 +188,7 @@ async fn create_user(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let actor = require_admin(&state, &headers).await?;
     validate_identity(&payload.username, &payload.email, &payload.display_name)?;
+    crate::username_policy::ensure_allowed(&state.db, &payload.username).await?;
     let password_hash = hash_password(&payload.password).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     let mut tx = state
@@ -248,6 +249,7 @@ async fn update_user(
         return Err(StatusCode::BAD_REQUEST);
     }
     if let Some(username) = &payload.username {
+        let username = username.trim();
         if username.len() < 3
             || username.len() > 64
             || !username
@@ -255,6 +257,17 @@ async fn update_user(
                 .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
         {
             return Err(StatusCode::BAD_REQUEST);
+        }
+
+        let current_username: String = sqlx::query_scalar("SELECT username FROM users WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if !current_username.eq_ignore_ascii_case(username) {
+            crate::username_policy::ensure_allowed(&state.db, username).await?;
         }
     }
     if let Some(email) = &payload.email {
@@ -277,7 +290,7 @@ async fn update_user(
          WHERE id=$1",
     )
     .bind(id)
-    .bind(payload.username.as_deref())
+    .bind(payload.username.as_deref().map(str::trim))
     .bind(payload.email.as_deref())
     .bind(payload.display_name.as_deref())
     .bind(payload.status.as_deref())

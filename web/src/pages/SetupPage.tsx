@@ -10,12 +10,14 @@ import {
 } from '@mui/material'
 import { FormEvent, useState } from 'react'
 import { api } from '../api'
+import { BrandMark, useBrand } from '../components/Branding'
 
 type Props = {
   onComplete: () => Promise<void>
 }
 
 export function SetupPage({ onComplete }: Props) {
+  const { brand } = useBrand()
   const [form, setForm] = useState({
     setup_token: '',
     username: '',
@@ -35,7 +37,13 @@ export function SetupPage({ onComplete }: Props) {
       await onComplete()
     } catch (err) {
       const status = (err as { status?: number }).status
-      setError(status === 401 ? 'The setup token is not valid.' : 'Could not initialize Auctor.')
+      setError(
+        status === 401
+          ? 'The setup token is not valid.'
+          : status === 400
+            ? 'One of the account fields is invalid. Check the username, email, and password, then try again.'
+            : 'Could not initialize the identity service.',
+      )
     } finally {
       setBusy(false)
     }
@@ -53,27 +61,14 @@ export function SetupPage({ onComplete }: Props) {
           'radial-gradient(circle at 18% 8%, rgba(211,227,253,.9), transparent 30%), #f8fafd',
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 620, borderRadius: 7 }}>
+      <Card sx={{ width: '100%', maxWidth: 620, borderRadius: 2.5 }}>
         <CardContent sx={{ p: { xs: 3.5, sm: 5 } }}>
           <Stack component="form" spacing={2.25} onSubmit={submit}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 3,
-                bgcolor: 'primary.main',
-                color: 'white',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 26,
-                fontWeight: 600,
-                mb: 1,
-              }}
-            >
-              A
+            <Box sx={{ mb: 1 }}>
+              <BrandMark size={52} />
             </Box>
             <Box>
-              <Typography variant="h4">Set up Auctor</Typography>
+              <Typography variant="h4">Set up {brand.site_name}</Typography>
               <Typography color="text.secondary" sx={{ mt: 1 }}>
                 Create the first platform administrator. The one-time setup token is stored only
                 on the server and is deleted after initialization.

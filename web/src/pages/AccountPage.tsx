@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
+import { BrandMark, useBrand } from '../components/Branding'
 import { UserAvatar } from '../components/UserAvatar'
 import type { Me, Session } from '../types'
 
@@ -49,6 +50,7 @@ export function AccountPage({
   onRefresh: () => Promise<void>
   onSignedOut: () => void
 }) {
+  const { brand } = useBrand()
   const [displayName, setDisplayName] = useState(me.display_name)
   const [sessions, setSessions] = useState<Session[]>([])
   const [profileNotice, setProfileNotice] = useState('')
@@ -101,11 +103,11 @@ export function AccountPage({
       <Box>
         <Typography variant="h4">My account</Typography>
         <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-          Manage your Auctor identity, access context, and signed-in devices.
+          Manage your {brand.site_name} identity, access context, and signed-in devices.
         </Typography>
       </Box>
 
-      <Card sx={{ borderRadius: 5 }}>
+      <Card sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} alignItems={{ sm: 'center' }}>
             <UserAvatar userId={me.id} name={me.display_name} size={80} />
@@ -133,14 +135,14 @@ export function AccountPage({
       </Card>
 
       <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5} alignItems="stretch">
-        <Card sx={{ borderRadius: 5, flex: 1 }}>
+        <Card sx={{ borderRadius: 2, flex: 1 }}>
           <CardContent sx={{ p: 3 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" mb={2.5}>
               <Box
                 sx={{
                   width: 42,
                   height: 42,
-                  borderRadius: 3,
+                  borderRadius: 1.5,
                   bgcolor: '#e8f0fe',
                   color: '#0b57d0',
                   display: 'grid',
@@ -188,14 +190,14 @@ export function AccountPage({
           </CardContent>
         </Card>
 
-        <Card sx={{ borderRadius: 5, flex: 1 }}>
+        <Card sx={{ borderRadius: 2, flex: 1 }}>
           <CardContent sx={{ p: 3 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" mb={2.5}>
               <Box
                 sx={{
                   width: 42,
                   height: 42,
-                  borderRadius: 3,
+                  borderRadius: 1.5,
                   bgcolor: '#fce8e6',
                   color: '#c5221f',
                   display: 'grid',
@@ -253,14 +255,14 @@ export function AccountPage({
         </Card>
       </Stack>
 
-      <Card sx={{ borderRadius: 5 }}>
+      <Card sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: 3 }}>
           <Stack direction="row" spacing={1.5} alignItems="center" mb={2.5}>
             <Box
               sx={{
                 width: 42,
                 height: 42,
-                borderRadius: 3,
+                borderRadius: 1.5,
                 bgcolor: '#e6f4ea',
                 color: '#137333',
                 display: 'grid',
@@ -375,22 +377,8 @@ export function AccountPage({
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.25}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2.5,
-              bgcolor: 'primary.main',
-              color: 'white',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: 700,
-              fontSize: 20,
-            }}
-          >
-            A
-          </Box>
-          <Typography fontWeight={600}>Auctor</Typography>
+          <BrandMark size={36} />
+          <Typography fontWeight={600}>{brand.site_name}</Typography>
         </Stack>
         <Button
           color="inherit"

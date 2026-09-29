@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Auctor identity portal</title>
+  <defs>
+    <linearGradient id="portal" x1="8" y1="8" x2="56" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B57D0"/>
+      <stop offset="1" stop-color="#4285F4"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 50V31C10 18.3 19.85 8 32 8s22 10.3 22 23v19"
+        fill="none" stroke="url(#portal)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M32 20 44 32 32 44 20 32 32 20Z" fill="#34A853"/>
+  <path d="M32 26 38 32 32 38 26 32 32 26Z" fill="#fff"/>
+</svg>

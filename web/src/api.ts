@@ -1,4 +1,4 @@
-import type { Application, AuditEvent, Group, Me, Role, Session, Stats, User, UserList } from './types'
+import type { Application, AuditEvent, Branding, Group, Me, Role, Session, Stats, User, UserList } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -20,6 +20,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  config: () => request<Branding>('/api/config'),
+  updateBranding: (payload: Branding) =>
+    request<Branding>('/api/admin/branding', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   setupStatus: () => request<{ required: boolean }>('/api/setup/status'),
   setup: (payload: {
     setup_token: string

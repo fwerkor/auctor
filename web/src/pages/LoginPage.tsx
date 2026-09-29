@@ -11,12 +11,14 @@ import {
 } from '@mui/material'
 import { FormEvent, useState } from 'react'
 import { api } from '../api'
+import { BrandMark, useBrand } from '../components/Branding'
 
 type Props = {
   onAuthenticated: () => Promise<void>
 }
 
 export function LoginPage({ onAuthenticated }: Props) {
+  const { brand } = useBrand()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,6 +30,11 @@ export function LoginPage({ onAuthenticated }: Props) {
     setError(false)
     try {
       await api.login(username, password)
+      const next = new URLSearchParams(window.location.search).get('continue')
+      if (next && next.startsWith('/') && !next.startsWith('//')) {
+        window.location.assign(next)
+        return
+      }
       await onAuthenticated()
     } catch {
       setError(true)
@@ -47,27 +54,14 @@ export function LoginPage({ onAuthenticated }: Props) {
           'radial-gradient(circle at 20% 10%, rgba(211,227,253,.75), transparent 32%), #f8fafd',
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 460, borderRadius: 7 }}>
+      <Card sx={{ width: '100%', maxWidth: 460, borderRadius: 2.5 }}>
         <CardContent sx={{ p: { xs: 3.5, sm: 5 } }}>
           <Stack spacing={3}>
             <Box>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 3,
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: 26,
-                  fontWeight: 600,
-                  mb: 3,
-                }}
-              >
-                A
+              <Box sx={{ mb: 3 }}>
+                <BrandMark size={52} />
               </Box>
-              <Typography variant="h4">Sign in to Auctor</Typography>
+              <Typography variant="h4">Sign in to {brand.site_name}</Typography>
               <Typography color="text.secondary" sx={{ mt: 1 }}>
                 One account for your applications and infrastructure.
               </Typography>

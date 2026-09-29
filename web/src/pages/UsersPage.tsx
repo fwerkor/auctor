@@ -176,7 +176,7 @@ export function UsersPage() {
           sx={{
             px: 2,
             py: 1.25,
-            borderRadius: 4,
+            borderRadius: 1.5,
             bgcolor: '#e8f0fe',
             color: '#0842a0',
           }}
@@ -205,7 +205,7 @@ export function UsersPage() {
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 5,
+          borderRadius: 2,
           overflow: 'hidden',
           opacity: loading ? 0.65 : 1,
           transition: 'opacity .15s',
@@ -626,7 +626,7 @@ function UserDrawer({
                   <Box>
                     <Typography>{draft.status === 'active' ? 'Active' : 'Disabled'}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Disabled users cannot sign in to Auctor or connected applications.
+                      Disabled users cannot sign in to this identity service or connected applications.
                     </Typography>
                   </Box>
                   <Switch
@@ -744,7 +744,7 @@ function UserDrawer({
                       sx={{
                         border: '1px solid',
                         borderColor: 'divider',
-                        borderRadius: 3,
+                        borderRadius: 1.5,
                         p: 1.75,
                       }}
                     >

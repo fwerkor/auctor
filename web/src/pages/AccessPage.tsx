@@ -89,14 +89,14 @@ export function AccessPage() {
           const count = isGroup ? (item as Group).member_count : (item as Role).user_count
           const protectedRole = !isGroup && isProtectedRole(item.name)
           return (
-            <Card key={item.id} sx={{ borderRadius: 4 }}>
+            <Card key={item.id} sx={{ borderRadius: 1.5 }}>
               <CardContent sx={{ py: 2.25, '&:last-child': { pb: 2.25 } }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
                   <Box
                     sx={{
                       width: 44,
                       height: 44,
-                      borderRadius: 3,
+                      borderRadius: 1.5,
                       bgcolor: isGroup ? '#e6f4ea' : '#e8f0fe',
                       color: isGroup ? '#137333' : '#0b57d0',
                       display: 'grid',
@@ -172,7 +172,7 @@ export function AccessPage() {
         })}
 
         {!items.length && (
-          <Card sx={{ borderRadius: 5 }}>
+          <Card sx={{ borderRadius: 2 }}>
             <CardContent sx={{ py: 7, textAlign: 'center' }}>
               <Typography variant="h6">
                 No {tab === 'groups' ? 'groups' : 'roles'} yet

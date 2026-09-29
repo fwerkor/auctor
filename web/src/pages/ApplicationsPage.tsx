@@ -75,7 +75,7 @@ export function ApplicationsPage() {
         <Box>
           <Typography variant="h4">Applications</Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-            Register clients that will use Auctor for OAuth 2.0 and OpenID Connect.
+            Register clients that will use this identity service for OAuth 2.0.
           </Typography>
         </Box>
         <Button
@@ -89,14 +89,14 @@ export function ApplicationsPage() {
 
       <Stack spacing={1.5}>
         {items.map((application) => (
-          <Card key={application.id} sx={{ borderRadius: 4 }}>
+          <Card key={application.id} sx={{ borderRadius: 1.5 }}>
             <CardContent sx={{ py: 2.5, '&:last-child': { pb: 2.5 } }}>
               <Stack direction="row" spacing={2} alignItems="flex-start">
                 <Box
                   sx={{
                     width: 48,
                     height: 48,
-                    borderRadius: 3,
+                    borderRadius: 1.5,
                     bgcolor: '#e8f0fe',
                     color: '#0b57d0',
                     display: 'grid',
@@ -178,7 +178,7 @@ export function ApplicationsPage() {
         ))}
 
         {!items.length && (
-          <Card sx={{ borderRadius: 5 }}>
+          <Card sx={{ borderRadius: 2 }}>
             <CardContent sx={{ py: 8, textAlign: 'center' }}>
               <LanguageRounded sx={{ fontSize: 52, color: 'primary.main', mb: 2 }} />
               <Typography variant="h6">No applications registered</Typography>
