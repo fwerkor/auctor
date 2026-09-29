@@ -83,15 +83,15 @@ pub async fn middleware(State(state): State<AppState>, request: Request, next: N
 
 fn client_key(headers: &axum::http::HeaderMap) -> String {
     headers
-        .get("x-forwarded-for")
+        .get("x-real-ip")
         .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(',').next())
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .or_else(|| {
             headers
-                .get("x-real-ip")
+                .get("x-forwarded-for")
                 .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.split(',').next_back())
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
         })
