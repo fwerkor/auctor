@@ -56,6 +56,11 @@ pub async fn current_user(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::UNAUTHORIZED)?;
 
+    let _ = sqlx::query("UPDATE sessions SET last_seen_at=now() WHERE token_hash=$1")
+        .bind(Sha256::digest(token.as_bytes()).to_vec())
+        .execute(&state.db)
+        .await;
+
     let roles: Vec<String> = sqlx::query_scalar(
         "SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=$1 ORDER BY r.name",
     )
@@ -134,12 +139,11 @@ async fn login(
         .map(str::to_owned);
 
     if sqlx::query(
-        "INSERT INTO sessions(user_id,token_hash,expires_at,ip,user_agent) VALUES ($1,$2,$3,$4,$5)",
+        "INSERT INTO sessions(user_id,token_hash,expires_at,user_agent) VALUES ($1,$2,$3,$4)",
     )
     .bind(row.0)
     .bind(hash)
     .bind(expires)
-    .bind(Option::<String>::None)
     .bind(user_agent)
     .execute(&state.db)
     .await
