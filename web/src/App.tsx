@@ -1,4 +1,6 @@
 import {
+  AccountCircleRounded,
+  AdminPanelSettingsRounded,
   AppsRounded,
   DashboardRounded,
   LogoutRounded,
@@ -25,25 +27,42 @@ import {
   useMediaQuery,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api'
 import { UserAvatar } from './components/UserAvatar'
-import { AuditPage } from './pages/AuditPage'
-import { ApplicationsPage } from './pages/ApplicationsPage'
-import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { SetupPage } from './pages/SetupPage'
-import { UsersPage } from './pages/UsersPage'
 import type { Me } from './types'
 
 const drawerWidth = 250
 
+const AccountPage = lazy(() =>
+  import('./pages/AccountPage').then((module) => ({ default: module.AccountPage })),
+)
+const DashboardPage = lazy(() =>
+  import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
+)
+const UsersPage = lazy(() =>
+  import('./pages/UsersPage').then((module) => ({ default: module.UsersPage })),
+)
+const AccessPage = lazy(() =>
+  import('./pages/AccessPage').then((module) => ({ default: module.AccessPage })),
+)
+const ApplicationsPage = lazy(() =>
+  import('./pages/ApplicationsPage').then((module) => ({ default: module.ApplicationsPage })),
+)
+const AuditPage = lazy(() =>
+  import('./pages/AuditPage').then((module) => ({ default: module.AuditPage })),
+)
+
 const nav = [
   { path: '/', label: 'Overview', icon: DashboardRounded },
   { path: '/users', label: 'Users', icon: PeopleRounded },
+  { path: '/access', label: 'Access', icon: AdminPanelSettingsRounded },
   { path: '/applications', label: 'Applications', icon: AppsRounded },
   { path: '/audit', label: 'Audit log', icon: PolicyRounded },
+  { path: '/account', label: 'My account', icon: AccountCircleRounded },
 ]
 
 export default function App() {
@@ -85,21 +104,41 @@ export default function App() {
   if (!me) return <LoginPage onAuthenticated={refreshMe} />
   if (!me.roles.includes('platform-admin')) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}>
-        <Stack spacing={1} textAlign="center">
-          <Typography variant="h5">Signed in as {me.display_name}</Typography>
-          <Typography color="text.secondary">
-            The account portal for non-administrators is not enabled in this pre-alpha build.
-          </Typography>
-        </Stack>
-      </Box>
+      <Suspense
+        fallback={
+          <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+            <CircularProgress />
+          </Box>
+        }
+      >
+        <AccountPage
+          me={me}
+          standalone
+          onRefresh={refreshMe}
+          onSignedOut={() => setMe(null)}
+        />
+      </Suspense>
     )
   }
 
-  return <AdminShell me={me} onLogout={() => setMe(null)} />
+  return (
+    <AdminShell
+      me={me}
+      onLogout={() => setMe(null)}
+      onRefresh={refreshMe}
+    />
+  )
 }
 
-function AdminShell({ me, onLogout }: { me: Me; onLogout: () => void }) {
+function AdminShell({
+  me,
+  onLogout,
+  onRefresh,
+}: {
+  me: Me
+  onLogout: () => void
+  onRefresh: () => Promise<void>
+}) {
   const theme = useTheme()
   const mobile = useMediaQuery(theme.breakpoints.down('md'))
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -266,13 +305,32 @@ function AdminShell({ me, onLogout }: { me: Me; onLogout: () => void }) {
         }}
       >
         <Box sx={{ p: { xs: 2, sm: 3, lg: 4 }, maxWidth: 1500, mx: 'auto' }}>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/applications" element={<ApplicationsPage />} />
-            <Route path="/audit" element={<AuditPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense
+            fallback={
+              <Box sx={{ minHeight: 320, display: 'grid', placeItems: 'center' }}>
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/access" element={<AccessPage />} />
+              <Route path="/applications" element={<ApplicationsPage />} />
+              <Route path="/audit" element={<AuditPage />} />
+              <Route
+                path="/account"
+                element={
+                  <AccountPage
+                    me={me}
+                    onRefresh={onRefresh}
+                    onSignedOut={onLogout}
+                  />
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </Box>
       </Box>
     </Box>

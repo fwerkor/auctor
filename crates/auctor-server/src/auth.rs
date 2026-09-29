@@ -25,10 +25,12 @@ struct LoginRequest {
 #[derive(Serialize)]
 pub struct MeResponse {
     id: Uuid,
+    session_id: Uuid,
     username: String,
     email: String,
     display_name: String,
     roles: Vec<String>,
+    groups: Vec<String>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -45,8 +47,8 @@ pub async fn current_user(
     let token = cookie_value(headers, COOKIE_NAME).ok_or(StatusCode::UNAUTHORIZED)?;
     let token_hash = Sha256::digest(token.as_bytes()).to_vec();
 
-    let row = sqlx::query_as::<_, (Uuid, String, String, String)>(
-        "SELECT u.id,u.username,u.email,u.display_name
+    let row = sqlx::query_as::<_, (Uuid, String, String, String, Uuid)>(
+        "SELECT u.id,u.username,u.email,u.display_name,s.id
          FROM sessions s JOIN users u ON u.id=s.user_id
          WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.status='active'",
     )
@@ -68,13 +70,22 @@ pub async fn current_user(
     .fetch_all(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let groups: Vec<String> = sqlx::query_scalar(
+        "SELECT g.name FROM groups g JOIN user_groups ug ON ug.group_id=g.id WHERE ug.user_id=$1 ORDER BY lower(g.name)",
+    )
+    .bind(row.0)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(SessionUser {
         id: row.0,
+        session_id: row.4,
         username: row.1,
         email: row.2,
         display_name: row.3,
         roles,
+        groups,
     })
 }
 
@@ -192,10 +203,12 @@ async fn me(
     let user = current_user(&state, &headers).await?;
     Ok(Json(MeResponse {
         id: user.id,
+        session_id: user.session_id,
         username: user.username,
         email: user.email,
         display_name: user.display_name,
         roles: user.roles,
+        groups: user.groups,
     }))
 }
 

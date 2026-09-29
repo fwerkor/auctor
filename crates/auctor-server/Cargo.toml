@@ -17,6 +17,7 @@ tower-http = { workspace = true, features = ["fs"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 uuid.workspace = true
+url.workspace = true
 
 argon2 = "0.5"
 base64 = "0.22"

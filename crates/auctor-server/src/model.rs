@@ -16,10 +16,12 @@ pub struct UserRecord {
 #[derive(Debug, Clone)]
 pub struct SessionUser {
     pub id: Uuid,
+    pub session_id: Uuid,
     pub username: String,
     pub email: String,
     pub display_name: String,
     pub roles: Vec<String>,
+    pub groups: Vec<String>,
 }
 
 impl SessionUser {

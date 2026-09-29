@@ -34,7 +34,6 @@ pub fn router() -> Router<AppState> {
         .route("/admin/users/{id}/roles", put(set_roles))
         .route("/admin/users/{id}/password", put(set_password))
         .route("/admin/users/{id}/revoke-sessions", post(revoke_sessions))
-        .route("/admin/roles", get(list_roles))
         .route("/admin/audit", get(list_audit))
 }
 
@@ -75,6 +74,7 @@ struct UserListItem {
     #[serde(flatten)]
     user: UserRecord,
     roles: Vec<String>,
+    groups: Vec<String>,
     active_sessions: i64,
     last_seen_at: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -119,6 +119,9 @@ async fn list_users(
         let roles: Vec<String> = sqlx::query_scalar(
             "SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=$1 ORDER BY r.name"
         ).bind(user.id).fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let groups: Vec<String> = sqlx::query_scalar(
+            "SELECT g.name FROM groups g JOIN user_groups ug ON ug.group_id=g.id WHERE ug.user_id=$1 ORDER BY lower(g.name)"
+        ).bind(user.id).fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         let active_sessions: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM sessions WHERE user_id=$1 AND revoked_at IS NULL AND expires_at>now()"
         ).bind(user.id).fetch_one(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -131,6 +134,7 @@ async fn list_users(
         items.push(UserListItem {
             user,
             roles,
+            groups,
             active_sessions,
             last_seen_at,
         });
@@ -156,6 +160,9 @@ async fn get_user(
     let roles: Vec<String> = sqlx::query_scalar(
         "SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=$1 ORDER BY r.name"
     ).bind(id).fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let groups: Vec<String> = sqlx::query_scalar(
+        "SELECT g.name FROM groups g JOIN user_groups ug ON ug.group_id=g.id WHERE ug.user_id=$1 ORDER BY lower(g.name)"
+    ).bind(id).fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let active_sessions: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM sessions WHERE user_id=$1 AND revoked_at IS NULL AND expires_at>now()"
     ).bind(id).fetch_one(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -168,6 +175,7 @@ async fn get_user(
     Ok(Json(UserListItem {
         user,
         roles,
+        groups,
         active_sessions,
         last_seen_at,
     }))
@@ -409,21 +417,6 @@ async fn revoke_sessions(
         .bind(actor.id).bind(id.to_string()).bind(json!({"revoked":affected}))
         .execute(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(json!({"ok":true,"revoked":affected})))
-}
-
-async fn list_roles(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    require_admin(&state, &headers).await?;
-    let rows: Vec<(Uuid, String, String)> =
-        sqlx::query_as("SELECT id,name,description FROM roles ORDER BY name")
-            .fetch_all(&state.db)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(
-        json!({"items": rows.into_iter().map(|(id,name,description)| json!({"id":id,"name":name,"description":description})).collect::<Vec<_>>()}),
-    ))
 }
 
 async fn list_audit(

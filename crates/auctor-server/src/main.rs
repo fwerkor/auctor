@@ -1,4 +1,10 @@
+mod account;
 mod admin;
+mod admin_applications;
+mod admin_bulk;
+mod admin_groups;
+mod admin_roles;
+mod admin_sessions;
 mod auth;
 mod avatar;
 mod db;
@@ -81,7 +87,13 @@ async fn main() -> anyhow::Result<()> {
 
     let api = Router::new()
         .merge(auth::router())
+        .merge(account::router())
         .merge(admin::router())
+        .merge(admin_applications::router())
+        .merge(admin_bulk::router())
+        .merge(admin_groups::router())
+        .merge(admin_roles::router())
+        .merge(admin_sessions::router())
         .merge(avatar::router())
         .merge(setup::router());
 

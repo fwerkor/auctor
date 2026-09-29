@@ -23,9 +23,21 @@ Auctor uses a global user model. A user keeps the same identity whether they are
 - docs/architecture.md: architecture and protocol roadmap.
 - docs/security.md: security boundaries and non-goals.
 
+## Current capabilities
+
+- Global users with Argon2id password credentials and server-side revocable sessions.
+- The same identity can be an ordinary application user and a platform administrator.
+- Material-style responsive account center and administration console.
+- User search, create/edit/disable, password reset, bulk actions, and audit history.
+- Custom groups and roles with user membership and assignment management.
+- Per-user and self-service session/device inspection and revocation.
+- Application/client registration with generated client IDs and strict redirect URI policy.
+- Gravatar avatars proxied through Auctor so browsers do not contact Gravatar directly.
+- PostgreSQL persistence and a one-time secure first-run administrator setup flow.
+
 ## Status
 
-Auctor is pre-alpha. It is not yet suitable for production authentication traffic.
+Auctor is pre-alpha. The identity/account and administration foundation is usable for development and evaluation, but OAuth 2.0/OpenID Connect token issuance, MFA/passkeys, recovery, rate limiting, and protocol conformance work are still required before Auctor should be used as the authoritative identity provider for critical applications.
 
 ## Development
 
