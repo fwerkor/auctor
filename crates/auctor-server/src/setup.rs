@@ -51,7 +51,11 @@ async fn create_first_admin(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    validate_identity(&payload.username, &payload.email, &payload.display_name)?;
+    let username = payload.username.trim();
+    let email = payload.email.trim();
+    let display_name = payload.display_name.trim();
+
+    validate_identity(username, email, display_name)?;
     let password_hash = hash_password(&payload.password).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     let mut tx = state
@@ -71,9 +75,9 @@ async fn create_first_admin(
     let user_id: Uuid = sqlx::query_scalar(
         "INSERT INTO users(username,email,display_name,password_hash) VALUES($1,$2,$3,$4) RETURNING id",
     )
-    .bind(payload.username.trim())
-    .bind(payload.email.trim().to_lowercase())
-    .bind(payload.display_name.trim())
+    .bind(username)
+    .bind(email.to_lowercase())
+    .bind(display_name)
     .bind(password_hash)
     .fetch_one(&mut *tx)
     .await
@@ -94,7 +98,7 @@ async fn create_first_admin(
     )
     .bind(user_id)
     .bind(user_id.to_string())
-    .bind(json!({"username": payload.username}))
+    .bind(json!({"username": username}))
     .execute(&mut *tx)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
