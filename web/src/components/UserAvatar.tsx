@@ -23,8 +23,8 @@ export function UserAvatar({ userId, name, size = 40 }: Props) {
       sx={{
         width: size,
         height: size,
-        bgcolor: '#d3e3fd',
-        color: '#0842a0',
+        bgcolor: 'primary.light',
+        color: 'primary.main',
         fontWeight: 600,
         fontSize: size * 0.36,
       }}

@@ -121,7 +121,7 @@ export function BrandingPage() {
                 borderRadius: 2,
                 display: 'grid',
                 placeItems: 'center',
-                bgcolor: '#f8fafd',
+                bgcolor: 'background.default',
                 p: 3,
               }}
             >

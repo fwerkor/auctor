@@ -51,8 +51,8 @@ export function DashboardPage() {
                       width: 44,
                       height: 44,
                       borderRadius: 1.5,
-                      bgcolor: '#e8f0fe',
-                      color: '#0b57d0',
+                      bgcolor: 'action.hover',
+                      color: 'primary.main',
                       display: 'grid',
                       placeItems: 'center',
                     }}

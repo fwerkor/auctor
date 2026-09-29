@@ -11,6 +11,7 @@ import {
 import { FormEvent, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
+import { ThemeModeButton } from '../colorMode'
 
 type Props = {
   onComplete: () => Promise<void>
@@ -57,10 +58,13 @@ export function SetupPage({ onComplete }: Props) {
         placeItems: 'center',
         px: 2,
         py: 4,
-        background:
-          'radial-gradient(circle at 18% 8%, rgba(211,227,253,.9), transparent 30%), #f8fafd',
+        background: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'radial-gradient(circle at 18% 8%, rgba(66,133,244,.18), transparent 32%), #111318'
+            : 'radial-gradient(circle at 18% 8%, rgba(211,227,253,.9), transparent 30%), #f8fafd',
       }}
     >
+      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 2 }}><ThemeModeButton /></Box>
       <Card sx={{ width: '100%', maxWidth: 620, borderRadius: 2.5 }}>
         <CardContent sx={{ p: { xs: 3.5, sm: 5 } }}>
           <Stack component="form" spacing={2.25} onSubmit={submit}>

@@ -177,8 +177,8 @@ export function UsersPage() {
             px: 2,
             py: 1.25,
             borderRadius: 1.5,
-            bgcolor: '#e8f0fe',
-            color: '#0842a0',
+            bgcolor: 'action.hover',
+            color: 'primary.main',
           }}
         >
           <Typography fontWeight={600} sx={{ mr: { sm: 'auto' } }}>
@@ -213,7 +213,7 @@ export function UsersPage() {
       >
         <Table>
           <TableHead>
-            <TableRow sx={{ bgcolor: '#f8fafd' }}>
+            <TableRow sx={{ bgcolor: 'background.default' }}>
               <TableCell padding="checkbox">
                 <Checkbox
                   checked={allVisibleSelected}
@@ -279,7 +279,7 @@ export function UsersPage() {
                         key={'group-' + group}
                         label={group}
                         size="small"
-                        sx={{ bgcolor: '#e6f4ea', color: '#137333' }}
+                        sx={{ bgcolor: 'action.hover', color: 'success.main' }}
                       />
                     ))}
                     {user.roles.length + user.groups.length > 4 && (
@@ -754,7 +754,7 @@ function UserDrawer({
                             width: 38,
                             height: 38,
                             borderRadius: 2.5,
-                            bgcolor: '#eef3f8',
+                            bgcolor: 'action.hover',
                             display: 'grid',
                             placeItems: 'center',
                             color: 'text.secondary',

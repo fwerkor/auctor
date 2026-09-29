@@ -12,6 +12,7 @@ import {
 import { FormEvent, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
+import { ThemeModeButton } from '../colorMode'
 
 type Props = {
   onAuthenticated: () => Promise<void>
@@ -50,10 +51,13 @@ export function LoginPage({ onAuthenticated }: Props) {
         display: 'grid',
         placeItems: 'center',
         px: 2,
-        background:
-          'radial-gradient(circle at 20% 10%, rgba(211,227,253,.75), transparent 32%), #f8fafd',
+        background: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'radial-gradient(circle at 20% 10%, rgba(66,133,244,.16), transparent 34%), #111318'
+            : 'radial-gradient(circle at 20% 10%, rgba(211,227,253,.75), transparent 32%), #f8fafd',
       }}
     >
+      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 2 }}><ThemeModeButton /></Box>
       <Card sx={{ width: '100%', maxWidth: 460, borderRadius: 2.5 }}>
         <CardContent sx={{ p: { xs: 3.5, sm: 5 } }}>
           <Stack spacing={3}>

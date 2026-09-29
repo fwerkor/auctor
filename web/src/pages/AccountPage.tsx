@@ -20,6 +20,7 @@ import {
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
+import { ThemeModeButton } from '../colorMode'
 import { UserAvatar } from '../components/UserAvatar'
 import type { Me, Session } from '../types'
 
@@ -125,7 +126,7 @@ export function AccountPage({
                     key={group}
                     label={group}
                     size="small"
-                    sx={{ bgcolor: '#e6f4ea', color: '#137333' }}
+                    sx={{ bgcolor: 'action.hover', color: 'success.main' }}
                   />
                 ))}
               </Stack>
@@ -143,8 +144,8 @@ export function AccountPage({
                   width: 42,
                   height: 42,
                   borderRadius: 1.5,
-                  bgcolor: '#e8f0fe',
-                  color: '#0b57d0',
+                  bgcolor: 'action.hover',
+                  color: 'primary.main',
                   display: 'grid',
                   placeItems: 'center',
                 }}
@@ -198,8 +199,8 @@ export function AccountPage({
                   width: 42,
                   height: 42,
                   borderRadius: 1.5,
-                  bgcolor: '#fce8e6',
-                  color: '#c5221f',
+                  bgcolor: 'action.hover',
+                  color: 'error.main',
                   display: 'grid',
                   placeItems: 'center',
                 }}
@@ -263,8 +264,8 @@ export function AccountPage({
                 width: 42,
                 height: 42,
                 borderRadius: 1.5,
-                bgcolor: '#e6f4ea',
-                color: '#137333',
+                bgcolor: 'action.hover',
+                color: 'success.main',
                 display: 'grid',
                 placeItems: 'center',
               }}
@@ -295,7 +296,7 @@ export function AccountPage({
                       width: 40,
                       height: 40,
                       borderRadius: 2.5,
-                      bgcolor: '#eef3f8',
+                      bgcolor: 'action.hover',
                       color: 'text.secondary',
                       display: 'grid',
                       placeItems: 'center',
@@ -373,23 +374,27 @@ export function AccountPage({
           px: { xs: 2, sm: 3 },
           borderBottom: '1px solid',
           borderColor: 'divider',
-          bgcolor: 'rgba(248,250,253,.95)',
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark' ? 'rgba(17,19,24,.95)' : 'rgba(248,250,253,.95)',
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.25}>
           <BrandMark size={36} />
           <Typography fontWeight={600}>{brand.site_name}</Typography>
         </Stack>
-        <Button
-          color="inherit"
-          startIcon={<LogoutRounded />}
-          onClick={async () => {
-            await api.logout()
-            onSignedOut()
-          }}
-        >
-          Sign out
-        </Button>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <ThemeModeButton />
+          <Button
+            color="inherit"
+            startIcon={<LogoutRounded />}
+            onClick={async () => {
+              await api.logout()
+              onSignedOut()
+            }}
+          >
+            Sign out
+          </Button>
+        </Stack>
       </Stack>
       <Box sx={{ p: { xs: 2, sm: 3, lg: 4 } }}>{content}</Box>
     </Box>

@@ -97,8 +97,8 @@ export function AccessPage() {
                       width: 44,
                       height: 44,
                       borderRadius: 1.5,
-                      bgcolor: isGroup ? '#e6f4ea' : '#e8f0fe',
-                      color: isGroup ? '#137333' : '#0b57d0',
+                      bgcolor: 'action.hover',
+                      color: isGroup ? 'success.main' : 'primary.main',
                       display: 'grid',
                       placeItems: 'center',
                       flex: '0 0 auto',
@@ -114,7 +114,7 @@ export function AccessPage() {
                         <Typography
                           variant="caption"
                           sx={{
-                            bgcolor: '#eef3f8',
+                            bgcolor: 'action.hover',
                             color: 'text.secondary',
                             px: 1,
                             py: 0.25,

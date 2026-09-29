@@ -40,7 +40,7 @@ export function AuditPage() {
       >
         <Table>
           <TableHead>
-            <TableRow sx={{ bgcolor: '#f8fafd' }}>
+            <TableRow sx={{ bgcolor: 'background.default' }}>
               <TableCell>Time</TableCell>
               <TableCell>Actor</TableCell>
               <TableCell>Action</TableCell>

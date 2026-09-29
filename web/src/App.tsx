@@ -32,6 +32,7 @@ import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api'
 import { BrandMark, useBrand } from './components/Branding'
+import { ThemeModeButton } from './colorMode'
 import { UserAvatar } from './components/UserAvatar'
 import { LoginPage } from './pages/LoginPage'
 import { SetupPage } from './pages/SetupPage'
@@ -179,10 +180,10 @@ function AdminShell({
               mb: 0.5,
               minHeight: 48,
               '&.Mui-selected': {
-                bgcolor: '#d3e3fd',
-                color: '#0842a0',
+                bgcolor: 'primary.light',
+                color: 'primary.main',
               },
-              '&.Mui-selected:hover': { bgcolor: '#c6dafc' },
+              '&.Mui-selected:hover': { bgcolor: 'primary.light' },
             }}
           >
             <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>
@@ -216,9 +217,11 @@ function AdminShell({
         elevation={0}
         color="transparent"
         sx={{
-          bgcolor: 'rgba(248,250,253,.92)',
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark' ? 'rgba(17,19,24,.92)' : 'rgba(248,250,253,.92)',
           backdropFilter: 'blur(18px)',
-          borderBottom: { xs: '1px solid #e3e7ec', md: 'none' },
+          borderBottom: { xs: '1px solid', md: 'none' },
+          borderColor: 'divider',
           width: { md: 'calc(100% - ' + drawerWidth + 'px)' },
           ml: { md: drawerWidth + 'px' },
         }}
@@ -234,7 +237,7 @@ function AdminShell({
               flex: 1,
               maxWidth: 720,
               height: 48,
-              bgcolor: '#eef3f8',
+              bgcolor: 'action.hover',
               borderRadius: 2,
               display: { xs: 'none', sm: 'flex' },
               alignItems: 'center',
@@ -250,6 +253,7 @@ function AdminShell({
             />
           </Box>
           <Box sx={{ flex: { xs: 1, sm: 0 } }} />
+          <ThemeModeButton />
           <Stack direction="row" spacing={1.2} alignItems="center">
             <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
               <Typography variant="body2" fontWeight={600}>
@@ -279,8 +283,9 @@ function AdminShell({
             paper: {
               sx: {
                 width: drawerWidth,
-                borderRight: '1px solid #e3e7ec',
-                bgcolor: '#f8fafd',
+                borderRight: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.default',
               },
             },
           }}
