@@ -1,0 +1,34 @@
+[Unit]
+Description=Auctor identity and access platform
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=auctor
+Group=auctor
+EnvironmentFile=/etc/auctor/auctor.env
+WorkingDirectory=/opt/auctor
+ExecStart=/opt/auctor/auctor-server
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=20
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/auctor
+
+[Install]
+WantedBy=multi-user.target
