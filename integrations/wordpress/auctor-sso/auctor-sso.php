@@ -158,7 +158,7 @@ final class Auctor_SSO {
     public static function login_url(string $redirect = ''): string {
         $target = home_url('/?auth=auctor');
         if ($redirect !== '') {
-            $target = add_query_arg('redirect_to', rawurlencode($redirect), $target);
+            $target = add_query_arg('redirect_to', $redirect, $target);
         }
         return $target;
     }
