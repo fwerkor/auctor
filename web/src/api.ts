@@ -1,4 +1,4 @@
-import type { Application, AuditEvent, Branding, Group, Me, Role, Session, Stats, User, UserList } from './types'
+import type { Application, AuditEvent, Branding, Group, Me, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -25,6 +25,17 @@ export const api = {
     request<Branding>('/api/admin/branding', {
       method: 'PUT',
       body: JSON.stringify(payload),
+    }),
+  reservedUsernames: () =>
+    request<{ items: ReservedUsername[] }>('/api/admin/reserved-usernames'),
+  addReservedUsername: (username: string, note = '') =>
+    request<{ username: string }>('/api/admin/reserved-usernames', {
+      method: 'POST',
+      body: JSON.stringify({ username, note }),
+    }),
+  deleteReservedUsername: (username: string) =>
+    request<{ ok: boolean }>('/api/admin/reserved-usernames/' + encodeURIComponent(username), {
+      method: 'DELETE',
     }),
   setupStatus: () => request<{ required: boolean }>('/api/setup/status'),
   setup: (payload: {

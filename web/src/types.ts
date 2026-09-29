@@ -4,6 +4,12 @@ export type Branding = {
   logo_url: string
 }
 
+export type ReservedUsername = {
+  username: string
+  note: string
+  created_at: string
+}
+
 export type Me = {
   id: string
   session_id: string

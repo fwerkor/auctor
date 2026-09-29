@@ -67,7 +67,7 @@ const nav = [
   { path: '/access', label: 'Access', icon: AdminPanelSettingsRounded },
   { path: '/applications', label: 'Applications', icon: AppsRounded },
   { path: '/audit', label: 'Audit log', icon: PolicyRounded },
-  { path: '/branding', label: 'Branding', icon: PaletteRounded },
+  { path: '/branding', label: 'Settings', icon: PaletteRounded },
   { path: '/account', label: 'My account', icon: AccountCircleRounded },
 ]
 

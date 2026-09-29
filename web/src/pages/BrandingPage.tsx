@@ -1,4 +1,4 @@
-import { OpenInNewRounded, PaletteRounded } from '@mui/icons-material'
+import { AddRounded, DeleteOutlineRounded, OpenInNewRounded, PaletteRounded, ShieldOutlined } from '@mui/icons-material'
 import {
   Alert,
   Box,
@@ -6,13 +6,14 @@ import {
   Card,
   CardContent,
   Stack,
+  IconButton,
   TextField,
   Typography,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
-import type { Branding } from '../types'
+import type { Branding, ReservedUsername } from '../types'
 
 export function BrandingPage() {
   const { brand, refresh } = useBrand()
@@ -20,8 +21,20 @@ export function BrandingPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [reserved, setReserved] = useState<ReservedUsername[]>([])
+  const [newUsername, setNewUsername] = useState('')
+  const [newNote, setNewNote] = useState('')
 
   useEffect(() => setDraft(brand), [brand])
+
+  async function loadReserved() {
+    const result = await api.reservedUsernames()
+    setReserved(result.items)
+  }
+
+  useEffect(() => {
+    loadReserved()
+  }, [])
 
   async function save() {
     setBusy(true)
@@ -45,9 +58,9 @@ export function BrandingPage() {
   return (
     <Stack spacing={2.5}>
       <Box>
-        <Typography variant="h4">Branding</Typography>
+        <Typography variant="h4">Settings</Typography>
         <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-          Customize the identity service without rebuilding the project.
+          Configure public branding and account naming policy.
         </Typography>
       </Box>
 
@@ -57,6 +70,13 @@ export function BrandingPage() {
           Could not save these values. Use an HTTPS public URL and an HTTPS or local logo URL.
         </Alert>
       )}
+
+      <Box>
+        <Typography variant="h6">Branding</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+          Site identity shown to users and OAuth integrations.
+        </Typography>
+      </Box>
 
       <Card sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
@@ -124,6 +144,89 @@ export function BrandingPage() {
                 <PaletteRounded color="action" sx={{ mt: 1 }} />
               </Stack>
             </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Box sx={{ pt: 1 }}>
+        <Typography variant="h6">Reserved usernames</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+          Exact, case-insensitive names that cannot be assigned to new users or used in a rename.
+        </Typography>
+      </Box>
+
+      <Card sx={{ borderRadius: 2 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+          <Stack spacing={2.5}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+              <TextField
+                label="Username"
+                value={newUsername}
+                onChange={(event) => setNewUsername(event.target.value)}
+                placeholder="example"
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Reason"
+                value={newNote}
+                onChange={(event) => setNewNote(event.target.value)}
+                placeholder="Reserved platform name"
+                sx={{ flex: 2 }}
+              />
+              <Button
+                variant="contained"
+                startIcon={<AddRounded />}
+                disabled={!newUsername.trim()}
+                onClick={async () => {
+                  await api.addReservedUsername(newUsername, newNote)
+                  setNewUsername('')
+                  setNewNote('')
+                  await loadReserved()
+                }}
+              >
+                Add
+              </Button>
+            </Stack>
+
+            <Stack spacing={0.75}>
+              {reserved.map((item) => (
+                <Stack
+                  key={item.username}
+                  direction="row"
+                  alignItems="center"
+                  spacing={1.5}
+                  sx={{
+                    px: 1.5,
+                    py: 1.1,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <ShieldOutlined fontSize="small" color="action" />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography fontWeight={600} sx={{ fontFamily: 'monospace' }}>
+                      {item.username}
+                    </Typography>
+                    {item.note && (
+                      <Typography variant="caption" color="text.secondary">
+                        {item.note}
+                      </Typography>
+                    )}
+                  </Box>
+                  <IconButton
+                    size="small"
+                    aria-label={'Remove reserved username ' + item.username}
+                    onClick={async () => {
+                      await api.deleteReservedUsername(item.username)
+                      await loadReserved()
+                    }}
+                  >
+                    <DeleteOutlineRounded fontSize="small" />
+                  </IconButton>
+                </Stack>
+              ))}
+            </Stack>
           </Stack>
         </CardContent>
       </Card>
