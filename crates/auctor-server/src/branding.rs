@@ -66,10 +66,13 @@ pub async fn load_avatar_settings(db: &sqlx::PgPool) -> Result<AvatarSettings, s
 }
 
 async fn public_config(State(state): State<AppState>) -> Result<Json<Branding>, StatusCode> {
-    load(&state.db)
+    let mut config = load(&state.db)
         .await
-        .map(Json)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if config.avatar_delivery == "proxy" {
+        config.avatar_source_template.clear();
+    }
+    Ok(Json(config))
 }
 
 async fn admin_get(
@@ -77,7 +80,10 @@ async fn admin_get(
     headers: HeaderMap,
 ) -> Result<Json<Branding>, StatusCode> {
     require_admin(&state, &headers).await?;
-    public_config(State(state)).await
+    load(&state.db)
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 async fn admin_update(
