@@ -3,12 +3,13 @@ mod auth;
 mod avatar;
 mod db;
 mod model;
+mod setup;
 
 use anyhow::Context;
 use axum::{Json, Router, routing::get};
 use serde::Serialize;
 use sqlx::PgPool;
-use std::{env, net::SocketAddr};
+use std::{env, net::SocketAddr, path::PathBuf};
 use tower_http::{
     services::{ServeDir, ServeFile},
     trace::TraceLayer,
@@ -21,6 +22,8 @@ pub struct AppState {
     pub secure_cookies: bool,
     pub session_hours: i64,
     pub http: reqwest::Client,
+    pub setup_token: Option<String>,
+    pub setup_token_path: PathBuf,
 }
 
 #[derive(Serialize)]
@@ -58,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
     let database_url = env::var("DATABASE_URL").context("DATABASE_URL is required")?;
     let db = db::connect(&database_url).await?;
     db::bootstrap_admin(&db).await?;
+    let (setup_token, setup_token_path) = db::ensure_setup_token(&db).await?;
 
     let state = AppState {
         db,
@@ -71,12 +75,15 @@ async fn main() -> anyhow::Result<()> {
         http: reqwest::Client::builder()
             .user_agent("Auctor/0.1 avatar proxy")
             .build()?,
+        setup_token,
+        setup_token_path,
     };
 
     let api = Router::new()
         .merge(auth::router())
         .merge(admin::router())
-        .merge(avatar::router());
+        .merge(avatar::router())
+        .merge(setup::router());
 
     let web_dir = env::var("AUCTOR_WEB_DIR").unwrap_or_else(|_| "web-dist".into());
     let assets_dir = format!("{web_dir}/assets");

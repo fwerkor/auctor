@@ -3,8 +3,10 @@ use argon2::{
     Argon2, PasswordHasher,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use rand::RngCore;
 use sqlx::{PgPool, postgres::PgPoolOptions};
-use std::env;
+use std::{env, fs, io::Write, os::unix::fs::OpenOptionsExt, path::PathBuf};
 
 pub async fn connect(database_url: &str) -> anyhow::Result<PgPool> {
     let pool = PgPoolOptions::new()
@@ -76,4 +78,43 @@ pub async fn bootstrap_admin(pool: &PgPool) -> anyhow::Result<()> {
     .await?;
     tx.commit().await?;
     Ok(())
+}
+
+pub async fn ensure_setup_token(pool: &PgPool) -> anyhow::Result<(Option<String>, PathBuf)> {
+    let path = PathBuf::from(
+        env::var("AUCTOR_SETUP_TOKEN_FILE")
+            .unwrap_or_else(|_| "/var/lib/auctor/setup-token".to_owned()),
+    );
+
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM users")
+        .fetch_one(pool)
+        .await?;
+    if count > 0 {
+        let _ = fs::remove_file(&path);
+        return Ok((None, path));
+    }
+
+    if let Ok(existing) = fs::read_to_string(&path) {
+        let token = existing.trim().to_owned();
+        if !token.is_empty() {
+            return Ok((Some(token), path));
+        }
+    }
+
+    let mut raw = [0u8; 32];
+    rand::rng().fill_bytes(&mut raw);
+    let token = URL_SAFE_NO_PAD.encode(raw);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .mode(0o600)
+        .open(&path)?;
+    writeln!(file, "{token}")?;
+
+    Ok((Some(token), path))
 }

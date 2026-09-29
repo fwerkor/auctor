@@ -20,6 +20,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  setupStatus: () => request<{ required: boolean }>('/api/setup/status'),
+  setup: (payload: {
+    setup_token: string
+    username: string
+    email: string
+    display_name: string
+    password: string
+  }) =>
+    request<{ id: string }>('/api/setup', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   me: () => request<Me>('/api/me'),
   login: (username: string, password: string) =>
     request<{ ok: boolean }>('/api/auth/login', {

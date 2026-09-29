@@ -33,6 +33,7 @@ import { AuditPage } from './pages/AuditPage'
 import { ApplicationsPage } from './pages/ApplicationsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { SetupPage } from './pages/SetupPage'
 import { UsersPage } from './pages/UsersPage'
 import type { Me } from './types'
 
@@ -47,6 +48,7 @@ const nav = [
 
 export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined)
+  const [setupRequired, setSetupRequired] = useState<boolean | undefined>(undefined)
 
   const refreshMe = useCallback(async () => {
     try {
@@ -56,11 +58,22 @@ export default function App() {
     }
   }, [])
 
-  useEffect(() => {
-    refreshMe()
+  const refreshSetup = useCallback(async () => {
+    try {
+      const result = await api.setupStatus()
+      setSetupRequired(result.required)
+      if (!result.required) await refreshMe()
+    } catch {
+      setSetupRequired(false)
+      await refreshMe()
+    }
   }, [refreshMe])
 
-  if (me === undefined) {
+  useEffect(() => {
+    refreshSetup()
+  }, [refreshSetup])
+
+  if (setupRequired === undefined || (!setupRequired && me === undefined)) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
         <CircularProgress />
@@ -68,6 +81,7 @@ export default function App() {
     )
   }
 
+  if (setupRequired) return <SetupPage onComplete={refreshSetup} />
   if (!me) return <LoginPage onAuthenticated={refreshMe} />
   if (!me.roles.includes('platform-admin')) {
     return (

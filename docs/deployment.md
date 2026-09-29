@@ -13,15 +13,15 @@ Recommended layout:
 The service should sit behind a TLS reverse proxy. AUCTOR_SECURE_COOKIES=true
 is required for public HTTPS deployments.
 
-Bootstrap variables are intentionally not part of the persistent environment
-example. They should be supplied only for the first start on an empty database:
+On an empty database, Auctor creates a one-time setup token at
+`/var/lib/auctor/setup-token` with mode `0600`. Open the web UI, enter that token,
+and choose the username, email, display name, and password for the first platform
+administrator. After the administrator is created, Auctor deletes the token file
+and disables first-run setup because the user directory is no longer empty.
 
-- AUCTOR_BOOTSTRAP_USERNAME
-- AUCTOR_BOOTSTRAP_EMAIL
-- AUCTOR_BOOTSTRAP_DISPLAY_NAME
-- AUCTOR_BOOTSTRAP_PASSWORD
-
-After the first user exists, remove bootstrap variables and restart the service.
+For automated deployments, the legacy `AUCTOR_BOOTSTRAP_*` environment variables
+remain available, but interactive setup is the preferred path because no account
+password needs to be stored in a service environment file.
 
 Do not expose a pre-alpha Auctor instance as the authoritative identity
 provider for critical applications until OAuth/OIDC conformance, MFA, recovery,
