@@ -5,11 +5,14 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  Link,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
+import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
+import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined'
+import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
 import { FormEvent, useEffect, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
@@ -232,62 +235,113 @@ export function LoginPage({ onAuthenticated }: Props) {
                     autoComplete="current-password"
                     fullWidth
                   />
-                  <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Stack direction="row" spacing={1.5}>
-                      {registration.enabled && (
-                        <Link
-                          component="button"
-                          type="button"
-                          underline="hover"
-                          onClick={() => {
-                            setError('')
-                            setNotice('')
-                            setMode('register')
-                          }}
-                        >
-                          Create account
-                        </Link>
-                      )}
-                      {registration.enabled && registration.require_email_verification && (
-                        <Link
-                          component="button"
-                          type="button"
-                          underline="hover"
-                          onClick={() => {
-                            setError('')
-                            setNotice('')
-                            setVerificationEmail('')
-                            setVerificationCode('')
-                            setMode('verify')
-                          }}
-                        >
-                          Verify email
-                        </Link>
-                      )}
-                      <Link
-                        component="button"
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    disabled={busy || !username || !password}
+                  >
+                    {busy ? <CircularProgress size={20} color="inherit" /> : 'Sign in'}
+                  </Button>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: '1fr',
+                        sm:
+                          registration.enabled && registration.require_email_verification
+                            ? 'repeat(3, minmax(0, 1fr))'
+                            : registration.enabled
+                              ? 'repeat(2, minmax(0, 1fr))'
+                              : '1fr',
+                      },
+                      gap: 1,
+                    }}
+                  >
+                    {registration.enabled && (
+                      <Button
                         type="button"
-                        underline="hover"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<PersonAddOutlinedIcon fontSize="small" />}
                         onClick={() => {
                           setError('')
                           setNotice('')
-                          setRecoveryEmail(username.includes('@') ? username : '')
-                          setMode('forgot')
+                          setMode('register')
+                        }}
+                        sx={{
+                          minHeight: 42,
+                          borderColor: 'divider',
+                          color: 'text.secondary',
+                          bgcolor: 'action.hover',
+                          whiteSpace: 'nowrap',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            bgcolor: 'action.selected',
+                          },
                         }}
                       >
-                        Forgot password?
-                      </Link>
-                    </Stack>
+                        Create account
+                      </Button>
+                    )}
+                    {registration.enabled && registration.require_email_verification && (
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<MarkEmailReadOutlinedIcon fontSize="small" />}
+                        onClick={() => {
+                          setError('')
+                          setNotice('')
+                          setVerificationEmail('')
+                          setVerificationCode('')
+                          setMode('verify')
+                        }}
+                        sx={{
+                          minHeight: 42,
+                          borderColor: 'divider',
+                          color: 'text.secondary',
+                          bgcolor: 'action.hover',
+                          whiteSpace: 'nowrap',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            bgcolor: 'action.selected',
+                          },
+                        }}
+                      >
+                        Verify email
+                      </Button>
+                    )}
                     <Button
-                      type="submit"
-                      variant="contained"
-                      size="large"
-                      disabled={busy || !username || !password}
-                      sx={{ minWidth: 112 }}
+                      type="button"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<LockResetOutlinedIcon fontSize="small" />}
+                      onClick={() => {
+                        setError('')
+                        setNotice('')
+                        setRecoveryEmail(username.includes('@') ? username : '')
+                        setMode('forgot')
+                      }}
+                      sx={{
+                        minHeight: 42,
+                        borderColor: 'divider',
+                        color: 'text.secondary',
+                        bgcolor: 'action.hover',
+                        whiteSpace: 'nowrap',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          color: 'primary.main',
+                          bgcolor: 'action.selected',
+                        },
+                      }}
                     >
-                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Sign in'}
+                      Forgot password
                     </Button>
-                  </Stack>
+                  </Box>
                 </Stack>
               </Box>
             )}
@@ -338,17 +392,18 @@ export function LoginPage({ onAuthenticated }: Props) {
                     </Typography>
                   )}
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Link
-                      component="button"
+                    <Button
                       type="button"
-                      underline="hover"
+                      variant="text"
+                      startIcon={<ArrowBackRoundedIcon fontSize="small" />}
                       onClick={() => {
                         setError('')
                         setMode('login')
                       }}
+                      sx={{ color: 'text.secondary' }}
                     >
                       Back to sign in
-                    </Link>
+                    </Button>
                     <Button
                       type="submit"
                       variant="contained"
@@ -390,9 +445,33 @@ export function LoginPage({ onAuthenticated }: Props) {
                     inputProps={{ inputMode: 'numeric', maxLength: 6 }}
                     autoFocus
                   />
-                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Stack spacing={1.25}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between">
+                      <Button
+                        type="button"
+                        variant="text"
+                        startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+                        onClick={() => {
+                          setError('')
+                          setNotice('')
+                          setMode('login')
+                        }}
+                        sx={{ color: 'text.secondary' }}
+                      >
+                        Back to sign in
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={busy || !verificationEmail || verificationCode.length !== 6}
+                      >
+                        {busy ? <CircularProgress size={20} color="inherit" /> : 'Verify email'}
+                      </Button>
+                    </Stack>
                     <Button
+                      type="button"
                       variant="text"
+                      size="small"
                       disabled={busy || !verificationEmail}
                       onClick={async () => {
                         setError('')
@@ -403,15 +482,9 @@ export function LoginPage({ onAuthenticated }: Props) {
                           setError('Could not resend the verification code.')
                         }
                       }}
+                      sx={{ alignSelf: 'flex-start', color: 'text.secondary' }}
                     >
-                      Resend code
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={busy || !verificationEmail || verificationCode.length !== 6}
-                    >
-                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Verify email'}
+                      Resend verification code
                     </Button>
                   </Stack>
                 </Stack>
@@ -434,18 +507,19 @@ export function LoginPage({ onAuthenticated }: Props) {
                     autoFocus
                   />
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Link
-                      component="button"
+                    <Button
                       type="button"
-                      underline="hover"
+                      variant="text"
+                      startIcon={<ArrowBackRoundedIcon fontSize="small" />}
                       onClick={() => {
                         setError('')
                         setNotice('')
                         setMode('login')
                       }}
+                      sx={{ color: 'text.secondary' }}
                     >
                       Back to sign in
-                    </Link>
+                    </Button>
                     <Button type="submit" variant="contained" disabled={busy || !recoveryEmail}>
                       {busy ? <CircularProgress size={20} color="inherit" /> : 'Send reset code'}
                     </Button>
