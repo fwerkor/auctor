@@ -18,7 +18,7 @@ use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserManager;
-use OCP\IUserSession;
+use OC\User\Session as UserSession;
 
 final class AuthController extends Controller {
     private const SESSION_KEY = 'auctor_sso_flow';
@@ -30,7 +30,7 @@ final class AuthController extends Controller {
         private ISession $session,
         private IClientService $clientService,
         private IUserManager $userManager,
-        private IUserSession $userSession,
+        private UserSession $userSession,
         private IConfig $config,
     ) {
         parent::__construct($appName, $request);
@@ -169,7 +169,23 @@ final class AuthController extends Controller {
             $user->setEMailAddress((string)$profile['email']);
         }
 
-        $this->userSession->setUser($user);
+        // A persistent browser login requires a real Nextcloud auth token
+        // bound to the regenerated PHP session ID. setUser() alone only
+        // authenticates the current callback request.
+        $this->userSession->completeLogin($user, [
+            'loginName' => $uid,
+            'password' => '',
+        ]);
+
+        if (!$this->userSession->createSessionToken(
+            $this->request,
+            $uid,
+            $uid,
+            null,
+        )) {
+            return new DataResponse(['error' => 'Could not establish Nextcloud session'], 500);
+        }
+
         return new RedirectResponse($this->urlGenerator->linkToDefaultPageUrl());
     }
 
