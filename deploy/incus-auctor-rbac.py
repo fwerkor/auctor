@@ -127,10 +127,35 @@ def resolve_user_grants(config, members):
     return resolved
 
 
-def render_scriptlet(admins, user_grants):
+def incus_server_version():
+    result = run(["incus", "version"], check=False)
+    if result.returncode != 0:
+        raise SystemExit("failed to query Incus server version: " + result.stderr.strip())
+
+    for line in result.stdout.splitlines():
+        if line.startswith("Server version:"):
+            raw = line.split(":", 1)[1].strip()
+            parts = raw.split(".")
+            try:
+                return tuple(int(part.split("-", 1)[0]) for part in parts[:3])
+            except ValueError as exc:
+                raise SystemExit(f"unrecognized Incus server version: {raw}") from exc
+
+    raise SystemExit("Incus server version not present in incus version output")
+
+
+def uses_flat_request_details(version):
+    # Fixed upstream in Incus 7.5.0: anonymous pointer fields are dereferenced
+    # and flattened by StarlarkMarshal. Older versions expose RequestDetails as
+    # a nested field instead.
+    return version >= (7, 5, 0)
+
+
+def render_scriptlet(admins, user_grants, flat_request_details):
     # JSON string/list/dict syntax is also valid Starlark for these values.
     admins_value = json.dumps(sorted(set(admins)))
     grants_value = json.dumps(user_grants, sort_keys=True)
+    request_expr = "details" if flat_request_details else "details.RequestDetails"
     return f'''# Managed by /usr/local/sbin/incus-auctor-rbac. Do not edit by hand.
 ADMINS = {admins_value}
 GRANTS = {grants_value}
@@ -152,10 +177,7 @@ PROJECT_SCOPED = [
 ]
 
 def authorize(details, object, entitlement):
-  # Incus 6.22 passes RequestDetails to Starlark through an anonymous pointer.
-  # Its Starlark marshaler does not flatten anonymous pointer fields, so the
-  # request fields live under details.RequestDetails rather than details directly.
-  request = details.RequestDetails
+  request = {request_expr}
 
   # Keep local unix/TLS administration unchanged. This policy is for Auctor OIDC identities.
   if request.Protocol != "oidc":
@@ -252,7 +274,8 @@ def sync():
     # Ensure Auctor itself rejects identities that are neither admins nor in a granted group.
     update_application_policy(config)
 
-    scriptlet = render_scriptlet(admins, user_grants)
+    server_version = incus_server_version()
+    scriptlet = render_scriptlet(admins, user_grants, uses_flat_request_details(server_version))
     if incus_config_get("authorization.scriptlet") != scriptlet.rstrip("\n"):
         run(["incus", "config", "set", "authorization.scriptlet=-"], input_text=scriptlet)
 
