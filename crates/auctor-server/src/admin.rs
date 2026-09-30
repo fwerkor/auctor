@@ -197,7 +197,7 @@ async fn create_user(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id: Uuid = sqlx::query_scalar(
-        "INSERT INTO users(username,email,display_name,password_hash) VALUES($1,$2,$3,$4) RETURNING id"
+        "INSERT INTO users(username,email,display_name,password_hash,email_verified_at) VALUES($1,$2,$3,$4,now()) RETURNING id"
     ).bind(payload.username.trim())
      .bind(payload.email.trim().to_lowercase())
      .bind(payload.display_name.trim())
@@ -238,6 +238,14 @@ async fn update_user(
     Json(payload): Json<UpdateUser>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let actor = require_admin(&state, &headers).await?;
+    let current: (String, String, String) =
+        sqlx::query_as("SELECT username,email,status FROM users WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
     if payload
         .status
         .as_deref()
@@ -246,6 +254,9 @@ async fn update_user(
         return Err(StatusCode::BAD_REQUEST);
     }
     if id == actor.id && payload.status.as_deref() == Some("disabled") {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    if current.2 == "pending_email" && payload.status.as_deref() == Some("active") {
         return Err(StatusCode::BAD_REQUEST);
     }
     if let Some(username) = &payload.username {
@@ -259,19 +270,12 @@ async fn update_user(
             return Err(StatusCode::BAD_REQUEST);
         }
 
-        let current_username: String = sqlx::query_scalar("SELECT username FROM users WHERE id=$1")
-            .bind(id)
-            .fetch_optional(&state.db)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::NOT_FOUND)?;
-
-        if !current_username.eq_ignore_ascii_case(username) {
+        if !current.0.eq_ignore_ascii_case(username) {
             crate::username_policy::ensure_allowed(&state.db, username).await?;
         }
     }
     if let Some(email) = &payload.email {
-        if !email.contains('@') || email.len() > 320 {
+        if !current.1.eq_ignore_ascii_case(email.trim()) {
             return Err(StatusCode::BAD_REQUEST);
         }
     }

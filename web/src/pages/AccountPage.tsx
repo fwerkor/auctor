@@ -61,6 +61,10 @@ export function AccountPage({
     next: '',
     confirm: '',
   })
+  const [emailChange, setEmailChange] = useState({ newEmail: '', currentPassword: '', code: '' })
+  const [emailChangeRequested, setEmailChangeRequested] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [emailNotice, setEmailNotice] = useState('')
 
   const loadSessions = useCallback(async () => {
     const result = await api.ownSessions()
@@ -96,6 +100,41 @@ export function AccountPage({
           ? 'The current password is incorrect.'
           : 'Could not change the password. Use at least 12 characters and choose a new value.',
       )
+    }
+  }
+
+  async function requestEmailChange() {
+    setEmailError('')
+    setEmailNotice('')
+    try {
+      await api.requestEmailChange(emailChange.newEmail, emailChange.currentPassword)
+      setEmailChangeRequested(true)
+      setEmailChange({ ...emailChange, currentPassword: '', code: '' })
+      setEmailNotice('A verification code was sent to the new email address.')
+    } catch (error) {
+      const status = (error as { status?: number }).status
+      setEmailError(
+        status === 401
+          ? 'The current password is incorrect.'
+          : status === 409
+            ? 'That email address is already in use.'
+            : status === 503
+              ? 'Could not send the verification email.'
+              : 'Could not start the email change.',
+      )
+    }
+  }
+
+  async function confirmEmailChange() {
+    setEmailError('')
+    try {
+      await api.confirmEmailChange(emailChange.newEmail, emailChange.code)
+      setEmailChange({ newEmail: '', currentPassword: '', code: '' })
+      setEmailChangeRequested(false)
+      setEmailNotice('Email address updated.')
+      await onRefresh()
+    } catch {
+      setEmailError('The verification code is invalid or has expired.')
     }
   }
 
@@ -173,12 +212,7 @@ export function AccountPage({
                 onChange={(event) => setDisplayName(event.target.value)}
               />
               <TextField label="Username" value={me.username} disabled />
-              <TextField
-                label="Email"
-                value={me.email}
-                disabled
-                helperText="Email changes will be enabled together with verification."
-              />
+              <TextField label="Current email" value={me.email} disabled />
               <Button
                 variant="contained"
                 sx={{ alignSelf: 'flex-end' }}
@@ -187,6 +221,80 @@ export function AccountPage({
               >
                 Save profile
               </Button>
+
+              <Divider sx={{ my: 0.5 }} />
+              <Typography variant="subtitle2">Change email</Typography>
+              {emailNotice && (
+                <Alert severity="success" onClose={() => setEmailNotice('')}>
+                  {emailNotice}
+                </Alert>
+              )}
+              {emailError && <Alert severity="error">{emailError}</Alert>}
+              <TextField
+                label="New email"
+                type="email"
+                value={emailChange.newEmail}
+                disabled={emailChangeRequested}
+                onChange={(event) =>
+                  setEmailChange({ ...emailChange, newEmail: event.target.value })
+                }
+                autoComplete="email"
+              />
+              {!emailChangeRequested ? (
+                <>
+                  <TextField
+                    label="Current password"
+                    type="password"
+                    value={emailChange.currentPassword}
+                    onChange={(event) =>
+                      setEmailChange({ ...emailChange, currentPassword: event.target.value })
+                    }
+                    autoComplete="current-password"
+                    helperText="We verify your password before sending a code to the new address."
+                  />
+                  <Button
+                    variant="outlined"
+                    sx={{ alignSelf: 'flex-end' }}
+                    disabled={!emailChange.newEmail || !emailChange.currentPassword}
+                    onClick={requestEmailChange}
+                  >
+                    Send verification code
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <TextField
+                    label="Verification code"
+                    value={emailChange.code}
+                    onChange={(event) =>
+                      setEmailChange({
+                        ...emailChange,
+                        code: event.target.value.replace(/\D/g, '').slice(0, 6),
+                      })
+                    }
+                    inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                  />
+                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button
+                      variant="text"
+                      onClick={() => {
+                        setEmailChangeRequested(false)
+                        setEmailChange({ ...emailChange, currentPassword: '', code: '' })
+                        setEmailError('')
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="contained"
+                      disabled={emailChange.code.length !== 6}
+                      onClick={confirmEmailChange}
+                    >
+                      Confirm new email
+                    </Button>
+                  </Stack>
+                </>
+              )}
             </Stack>
           </CardContent>
         </Card>

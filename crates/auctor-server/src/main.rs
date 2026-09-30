@@ -9,11 +9,15 @@ mod auth;
 mod avatar;
 mod branding;
 mod db;
+mod email;
 mod model;
 mod oauth;
+mod registration;
 mod security;
+mod settings;
 mod setup;
 mod username_policy;
+mod verification;
 
 use anyhow::Context;
 use axum::{Json, Router, extract::DefaultBodyLimit, middleware, routing::get};
@@ -104,6 +108,8 @@ async fn main() -> anyhow::Result<()> {
         .merge(admin_sessions::router())
         .merge(avatar::router())
         .merge(branding::router())
+        .merge(registration::router())
+        .merge(settings::router())
         .merge(setup::router())
         .merge(username_policy::router());
 

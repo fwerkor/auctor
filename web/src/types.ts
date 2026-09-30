@@ -32,7 +32,7 @@ export type User = {
   username: string
   email: string
   display_name: string
-  status: 'active' | 'disabled'
+  status: 'active' | 'disabled' | 'pending_email'
   created_at: string
   updated_at: string
   roles: string[]
@@ -101,4 +101,21 @@ export type Stats = {
   users_active: number
   sessions_active: number
   applications_total: number
+}
+
+export type RegistrationConfig = {
+  enabled: boolean
+  require_email_verification: boolean
+}
+
+export type AuthSettings = {
+  registration_enabled: boolean
+  registration_require_email_verification: boolean
+  smtp_host: string
+  smtp_port: number
+  smtp_security: 'starttls' | 'tls' | 'none'
+  smtp_username: string
+  smtp_from_email: string
+  smtp_from_name: string
+  smtp_password_configured: boolean
 }

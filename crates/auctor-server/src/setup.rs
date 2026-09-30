@@ -74,7 +74,7 @@ async fn create_first_admin(
     }
 
     let user_id: Uuid = sqlx::query_scalar(
-        "INSERT INTO users(username,email,display_name,password_hash) VALUES($1,$2,$3,$4) RETURNING id",
+        "INSERT INTO users(username,email,display_name,password_hash,email_verified_at) VALUES($1,$2,$3,$4,now()) RETURNING id",
     )
     .bind(username)
     .bind(email.to_lowercase())

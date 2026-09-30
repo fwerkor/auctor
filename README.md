@@ -34,10 +34,14 @@ Auctor uses a global user model. A user keeps the same identity whether they are
 - Application/client registration with generated client IDs and strict redirect URI policy.
 - Gravatar avatars proxied through Auctor so browsers do not contact Gravatar directly.
 - PostgreSQL persistence and a one-time secure first-run administrator setup flow.
+- Administrator-controlled self-service registration, disabled by default.
+- Optional mandatory registration email verification with expiring, attempt-limited Argon2-backed codes.
+- Configurable SMTP transport with STARTTLS or implicit TLS and a built-in test-email action.
+- Verified account email changes: current password plus a code delivered to the new address.
 
 ## Status
 
-Auctor is pre-alpha. The identity/account and administration foundation is usable for development and evaluation, but OAuth 2.0/OpenID Connect token issuance, MFA/passkeys, recovery, rate limiting, and protocol conformance work are still required before Auctor should be used as the authoritative identity provider for critical applications.
+Auctor is pre-alpha. The identity/account and administration foundation is usable for development and evaluation, but OAuth 2.0/OpenID Connect token issuance, MFA/passkeys, account recovery, and protocol conformance work are still required before Auctor should be used as the authoritative identity provider for critical applications.
 
 ## Development
 

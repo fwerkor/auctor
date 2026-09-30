@@ -51,7 +51,7 @@ pub async fn bootstrap_admin(pool: &PgPool) -> anyhow::Result<()> {
 
     let mut tx = pool.begin().await?;
     let user_id: uuid::Uuid = sqlx::query_scalar(
-        "INSERT INTO users(username,email,display_name,password_hash) VALUES ($1,$2,$3,$4) RETURNING id",
+        "INSERT INTO users(username,email,display_name,password_hash,email_verified_at) VALUES ($1,$2,$3,$4,now()) RETURNING id",
     )
     .bind(&username)
     .bind(email.trim().to_lowercase())

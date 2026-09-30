@@ -1,4 +1,4 @@
-import type { Application, AuditEvent, AvatarSettings, Branding, Group, Me, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
+import type { Application, AuditEvent, AuthSettings, AvatarSettings, Branding, Group, Me, RegistrationConfig, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -26,6 +26,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  authSettings: () => request<AuthSettings>('/api/admin/auth-settings'),
+  updateAuthSettings: (payload: Omit<AuthSettings, 'smtp_password_configured'> & { smtp_password?: string }) =>
+    request<AuthSettings>('/api/admin/auth-settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  testSmtp: () => request<{ ok: boolean }>('/api/admin/auth-settings/test-email', { method: 'POST' }),
   avatarSettings: () => request<AvatarSettings>('/api/admin/avatar-settings'),
   updateAvatarSettings: (payload: AvatarSettings) =>
     request<AvatarSettings>('/api/admin/avatar-settings', {
@@ -56,6 +63,22 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   me: () => request<Me>('/api/me'),
+  registrationConfig: () => request<RegistrationConfig>('/api/auth/registration-config'),
+  register: (payload: { username: string; email: string; display_name: string; password: string }) =>
+    request<{ id: string; verification_required: boolean }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  verifyRegistration: (email: string, code: string) =>
+    request<{ ok: boolean }>('/api/auth/register/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    }),
+  resendRegistrationCode: (email: string) =>
+    request<{ ok: boolean }>('/api/auth/register/resend', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
   login: (username: string, password: string) =>
     request<{ ok: boolean }>('/api/auth/login', {
       method: 'POST',
@@ -71,6 +94,16 @@ export const api = {
     request<{ ok: boolean; sessions_revoked: boolean }>('/api/account/password', {
       method: 'PUT',
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    }),
+  requestEmailChange: (newEmail: string, currentPassword: string) =>
+    request<{ ok: boolean }>('/api/account/email/request', {
+      method: 'POST',
+      body: JSON.stringify({ new_email: newEmail, current_password: currentPassword }),
+    }),
+  confirmEmailChange: (newEmail: string, code: string) =>
+    request<{ ok: boolean }>('/api/account/email/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ new_email: newEmail, code }),
     }),
   ownSessions: () => request<{ items: Session[] }>('/api/account/sessions'),
   revokeOwnSession: (sessionId: string) =>

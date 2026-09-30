@@ -5,30 +5,53 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Link,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
 import { ThemeModeButton } from '../colorMode'
+import type { RegistrationConfig } from '../types'
 
 type Props = {
   onAuthenticated: () => Promise<void>
 }
 
+type Mode = 'login' | 'register' | 'verify'
+
 export function LoginPage({ onAuthenticated }: Props) {
   const { brand } = useBrand()
+  const [mode, setMode] = useState<Mode>('login')
+  const [registration, setRegistration] = useState<RegistrationConfig>({
+    enabled: false,
+    require_email_verification: false,
+  })
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [registerForm, setRegisterForm] = useState({
+    username: '',
+    email: '',
+    displayName: '',
+    password: '',
+    confirm: '',
+  })
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
-  async function submit(event: FormEvent) {
+  useEffect(() => {
+    api.registrationConfig().then(setRegistration).catch(() => undefined)
+  }, [])
+
+  async function submitLogin(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
-    setError(false)
+    setError('')
     try {
       await api.login(username, password)
       const next = new URLSearchParams(window.location.search).get('continue')
@@ -38,11 +61,76 @@ export function LoginPage({ onAuthenticated }: Props) {
       }
       await onAuthenticated()
     } catch {
-      setError(true)
+      setError('Incorrect username, email, or password.')
     } finally {
       setBusy(false)
     }
   }
+
+  async function submitRegistration(event: FormEvent) {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    if (registerForm.password !== registerForm.confirm) {
+      setError('The passwords do not match.')
+      return
+    }
+    setBusy(true)
+    try {
+      const result = await api.register({
+        username: registerForm.username,
+        email: registerForm.email,
+        display_name: registerForm.displayName,
+        password: registerForm.password,
+      })
+      if (result.verification_required) {
+        setVerificationEmail(registerForm.email.trim())
+        setVerificationCode('')
+        setMode('verify')
+        setNotice('A verification code was sent to your email address.')
+      } else {
+        setUsername(registerForm.username)
+        setPassword('')
+        setMode('login')
+        setNotice('Account created. You can sign in now.')
+      }
+    } catch (err) {
+      const status = (err as { status?: number }).status
+      setError(
+        status === 409
+          ? 'That username or email is already in use.'
+          : status === 503
+            ? 'Could not send the verification email. Try again shortly.'
+            : 'Could not create the account. Check the fields and use a password of at least 12 characters.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function submitVerification(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await api.verifyRegistration(verificationEmail, verificationCode)
+      setUsername(verificationEmail)
+      setPassword('')
+      setMode('login')
+      setNotice('Email verified. You can sign in now.')
+    } catch {
+      setError('The verification code is invalid or has expired.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const title =
+    mode === 'login'
+      ? 'Sign in to ' + brand.site_name
+      : mode === 'register'
+        ? 'Create your ' + brand.site_name + ' account'
+        : 'Verify your email'
 
   return (
     <Box
@@ -57,46 +145,215 @@ export function LoginPage({ onAuthenticated }: Props) {
             : 'radial-gradient(circle at 20% 10%, rgba(211,227,253,.75), transparent 32%), #f8fafd',
       }}
     >
-      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 2 }}><ThemeModeButton /></Box>
-      <Card sx={{ width: '100%', maxWidth: 460, borderRadius: 2.5 }}>
+      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 2 }}>
+        <ThemeModeButton />
+      </Box>
+      <Card sx={{ width: '100%', maxWidth: 500, borderRadius: 2.5 }}>
         <CardContent sx={{ p: { xs: 3.5, sm: 5 } }}>
           <Stack spacing={3}>
             <Box>
               <Box sx={{ mb: 3 }}>
                 <BrandMark size={52} />
               </Box>
-              <Typography variant="h4">Sign in to {brand.site_name}</Typography>
+              <Typography variant="h4">{title}</Typography>
             </Box>
-            {error && <Alert severity="error">Incorrect username, email, or password.</Alert>}
-            <Box component="form" onSubmit={submit}>
-              <Stack spacing={2.25}>
-                <TextField
-                  label="Username or email"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  autoFocus
-                  fullWidth
-                />
-                <TextField
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  fullWidth
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  disabled={busy || !username || !password}
-                  sx={{ alignSelf: 'flex-end', minWidth: 112 }}
-                >
-                  {busy ? <CircularProgress size={20} color="inherit" /> : 'Sign in'}
-                </Button>
-              </Stack>
-            </Box>
+
+            {notice && <Alert severity="success">{notice}</Alert>}
+            {error && <Alert severity="error">{error}</Alert>}
+
+            {mode === 'login' && (
+              <Box component="form" onSubmit={submitLogin}>
+                <Stack spacing={2.25}>
+                  <TextField
+                    label="Username or email"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    autoFocus
+                    fullWidth
+                  />
+                  <TextField
+                    label="Password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    fullWidth
+                  />
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    {registration.enabled ? (
+                      <Stack direction="row" spacing={1.5}>
+                        <Link
+                          component="button"
+                          type="button"
+                          underline="hover"
+                          onClick={() => {
+                            setError('')
+                            setNotice('')
+                            setMode('register')
+                          }}
+                        >
+                          Create account
+                        </Link>
+                        {registration.require_email_verification && (
+                          <Link
+                            component="button"
+                            type="button"
+                            underline="hover"
+                            onClick={() => {
+                              setError('')
+                              setNotice('')
+                              setVerificationEmail('')
+                              setVerificationCode('')
+                              setMode('verify')
+                            }}
+                          >
+                            Verify email
+                          </Link>
+                        )}
+                      </Stack>
+                    ) : (
+                      <Box />
+                    )}
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      size="large"
+                      disabled={busy || !username || !password}
+                      sx={{ minWidth: 112 }}
+                    >
+                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Sign in'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            )}
+
+            {mode === 'register' && (
+              <Box component="form" onSubmit={submitRegistration}>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Username"
+                    value={registerForm.username}
+                    onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                    autoComplete="username"
+                    autoFocus
+                  />
+                  <TextField
+                    label="Display name"
+                    value={registerForm.displayName}
+                    onChange={(e) =>
+                      setRegisterForm({ ...registerForm, displayName: e.target.value })
+                    }
+                    autoComplete="name"
+                  />
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={registerForm.email}
+                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                    autoComplete="email"
+                  />
+                  <TextField
+                    label="Password"
+                    type="password"
+                    value={registerForm.password}
+                    onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                    autoComplete="new-password"
+                    helperText="Use at least 12 characters."
+                  />
+                  <TextField
+                    label="Confirm password"
+                    type="password"
+                    value={registerForm.confirm}
+                    onChange={(e) => setRegisterForm({ ...registerForm, confirm: e.target.value })}
+                    autoComplete="new-password"
+                  />
+                  {registration.require_email_verification && (
+                    <Typography variant="body2" color="text.secondary">
+                      You must verify your email address before the account can sign in.
+                    </Typography>
+                  )}
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Link
+                      component="button"
+                      type="button"
+                      underline="hover"
+                      onClick={() => {
+                        setError('')
+                        setMode('login')
+                      }}
+                    >
+                      Back to sign in
+                    </Link>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={
+                        busy ||
+                        !registerForm.username ||
+                        !registerForm.email ||
+                        !registerForm.displayName ||
+                        !registerForm.password ||
+                        !registerForm.confirm
+                      }
+                    >
+                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Create account'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            )}
+
+            {mode === 'verify' && (
+              <Box component="form" onSubmit={submitVerification}>
+                <Stack spacing={2}>
+                  <Typography color="text.secondary">
+                    Enter the email address and the six-digit verification code.
+                  </Typography>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={verificationEmail}
+                    onChange={(e) => setVerificationEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                  <TextField
+                    label="Verification code"
+                    value={verificationCode}
+                    onChange={(e) =>
+                      setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                    }
+                    inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                    autoFocus
+                  />
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Button
+                      variant="text"
+                      disabled={busy || !verificationEmail}
+                      onClick={async () => {
+                        setError('')
+                        try {
+                          await api.resendRegistrationCode(verificationEmail)
+                          setNotice('A new verification code was sent.')
+                        } catch {
+                          setError('Could not resend the verification code.')
+                        }
+                      }}
+                    >
+                      Resend code
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={busy || !verificationEmail || verificationCode.length !== 6}
+                    >
+                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Verify email'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            )}
           </Stack>
         </CardContent>
       </Card>

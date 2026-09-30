@@ -1,10 +1,10 @@
-use crate::{AppState, auth::current_user, db::hash_password};
+use crate::{AppState, auth::current_user, db::hash_password, verification};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     Json, Router,
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
-    routing::{delete, get, patch, put},
+    routing::{delete, get, patch, post, put},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -22,6 +22,18 @@ struct ChangePassword {
     new_password: String,
 }
 
+#[derive(Deserialize)]
+struct RequestEmailChange {
+    new_email: String,
+    current_password: String,
+}
+
+#[derive(Deserialize)]
+struct ConfirmEmailChange {
+    new_email: String,
+    code: String,
+}
+
 #[derive(Serialize, sqlx::FromRow)]
 struct OwnSession {
     id: Uuid,
@@ -37,6 +49,8 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/account/profile", patch(update_profile))
         .route("/account/password", put(change_password))
+        .route("/account/email/request", post(request_email_change))
+        .route("/account/email/confirm", post(confirm_email_change))
         .route("/account/sessions", get(list_sessions))
         .route("/account/sessions/{id}", delete(revoke_session))
 }
@@ -130,6 +144,138 @@ async fn change_password(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(json!({"ok": true, "sessions_revoked": true})))
+}
+
+async fn request_email_change(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<RequestEmailChange>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user = current_user(&state, &headers).await?;
+    let new_email = payload.new_email.trim().to_lowercase();
+
+    if new_email == user.email.to_lowercase()
+        || new_email.len() > 320
+        || new_email.parse::<lettre::Address>().is_err()
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let password_hash: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE id=$1")
+        .bind(user.id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let parsed =
+        PasswordHash::new(&password_hash).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if Argon2::default()
+        .verify_password(payload.current_password.as_bytes(), &parsed)
+        .is_err()
+    {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM users WHERE lower(email)=lower($1) AND id<>$2)",
+    )
+    .bind(&new_email)
+    .bind(user.id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if exists {
+        return Err(StatusCode::CONFLICT);
+    }
+
+    verification::issue_code(&state.db, user.id, &new_email, "email_change")
+        .await
+        .map_err(|error| {
+            tracing::warn!(?error, user_id=%user.id, "could not send email-change verification");
+            StatusCode::SERVICE_UNAVAILABLE
+        })?;
+
+    audit(
+        &state,
+        user.id,
+        "account.email.change.request",
+        json!({"new_email": new_email}),
+    )
+    .await?;
+
+    Ok(Json(json!({"ok": true})))
+}
+
+async fn confirm_email_change(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<ConfirmEmailChange>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user = current_user(&state, &headers).await?;
+    let new_email = payload.new_email.trim().to_lowercase();
+
+    if new_email.len() > 320 || new_email.parse::<lettre::Address>().is_err() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM users WHERE lower(email)=lower($1) AND id<>$2)",
+    )
+    .bind(&new_email)
+    .bind(user.id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if exists {
+        return Err(StatusCode::CONFLICT);
+    }
+
+    if !verification::consume_code(
+        &state.db,
+        user.id,
+        &new_email,
+        "email_change",
+        &payload.code,
+    )
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let mut tx = state
+        .db
+        .begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let result = sqlx::query(
+        "UPDATE users
+         SET email=lower($2),email_verified_at=now(),updated_at=now()
+         WHERE id=$1",
+    )
+    .bind(user.id)
+    .bind(&new_email)
+    .execute(&mut *tx)
+    .await
+    .map_err(|_| StatusCode::CONFLICT)?;
+    if result.rows_affected() == 0 {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    sqlx::query(
+        "INSERT INTO audit_events(actor_user_id,action,target_type,target_id,metadata)
+         VALUES($1,'account.email.change','user',$2,$3)",
+    )
+    .bind(user.id)
+    .bind(user.id.to_string())
+    .bind(json!({"old_email": user.email, "new_email": new_email}))
+    .execute(&mut *tx)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    tx.commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({"ok": true})))
 }
 
 async fn list_sessions(

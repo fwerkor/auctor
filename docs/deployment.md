@@ -37,6 +37,27 @@ After first sign-in, open Branding in the administrator console and set:
 
 The canonical site URL must be configured before OAuth metadata can be used.
 
+## Registration and email verification
+
+Self-service registration is disabled by default. Administrators can enable it under
+**Settings → Registration and email** and can independently require new accounts to
+verify their email address before signing in.
+
+When verification is required, configure SMTP in the same settings section:
+
+- SMTP host and port;
+- STARTTLS, implicit TLS, or (only for a trusted local relay) unencrypted SMTP;
+- optional SMTP authentication username and password;
+- From address and display name.
+
+The SMTP password is write-only through the administrator API: the browser only learns
+whether a password is configured. Use **Send test email** after changing the transport.
+
+Verification codes expire after ten minutes, are attempt-limited, and are stored using
+Argon2 rather than in plaintext. Changing an existing account email always requires the
+current password and a verification code sent to the new address, regardless of whether
+registration verification is enabled.
+
 ## WordPress SSO
 
 The official plugin lives under integrations/wordpress/auctor-sso.

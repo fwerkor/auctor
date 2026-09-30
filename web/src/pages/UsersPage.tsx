@@ -294,7 +294,13 @@ export function UsersPage() {
                 <TableCell>
                   <Chip
                     size="small"
-                    label={user.status === 'active' ? 'Active' : 'Disabled'}
+                    label={
+                      user.status === 'active'
+                        ? 'Active'
+                        : user.status === 'pending_email'
+                          ? 'Pending email'
+                          : 'Disabled'
+                    }
                     color={user.status === 'active' ? 'success' : 'default'}
                     variant={user.status === 'active' ? 'filled' : 'outlined'}
                   />
@@ -540,7 +546,6 @@ function UserDrawer({
       draft &&
       (user.display_name !== draft.display_name ||
         user.username !== draft.username ||
-        user.email !== draft.email ||
         user.status !== draft.status ||
         JSON.stringify([...user.roles].sort()) !== JSON.stringify([...draft.roles].sort()) ||
         JSON.stringify([...user.groups].sort()) !== JSON.stringify([...draft.groups].sort())),
@@ -553,7 +558,6 @@ function UserDrawer({
     await api.updateUser(draft!.id, {
       display_name: draft!.display_name,
       username: draft!.username,
-      email: draft!.email,
       status: draft!.status,
     })
     await api.setRoles(draft!.id, draft!.roles)
@@ -614,7 +618,8 @@ function UserDrawer({
                 <TextField
                   label="Email"
                   value={draft.email}
-                  onChange={(event) => setDraft({ ...draft, email: event.target.value })}
+                  disabled
+                  helperText="Email changes require verification by the account owner."
                 />
               </Stack>
 
@@ -624,13 +629,22 @@ function UserDrawer({
                 </Typography>
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
                   <Box>
-                    <Typography>{draft.status === 'active' ? 'Active' : 'Disabled'}</Typography>
+                    <Typography>
+                      {draft.status === 'active'
+                        ? 'Active'
+                        : draft.status === 'pending_email'
+                          ? 'Pending email verification'
+                          : 'Disabled'}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Disabled users cannot sign in to this identity service or connected applications.
+                      {draft.status === 'pending_email'
+                        ? 'The user must verify their email before the account can be activated.'
+                        : 'Disabled users cannot sign in to this identity service or connected applications.'}
                     </Typography>
                   </Box>
                   <Switch
                     checked={draft.status === 'active'}
+                    disabled={draft.status === 'pending_email'}
                     onChange={(event) =>
                       setDraft({
                         ...draft,

@@ -54,6 +54,13 @@ pub async fn middleware(State(state): State<AppState>, request: Request, next: N
 
     let rule = match path.as_str() {
         "/api/auth/login" => Some(("login", 10, Duration::from_secs(60))),
+        "/api/auth/register" => Some(("register", 5, Duration::from_secs(300))),
+        "/api/auth/register/verify" => Some(("register-verify", 10, Duration::from_secs(300))),
+        "/api/auth/register/resend" => Some(("register-resend", 3, Duration::from_secs(600))),
+        "/api/account/email/request" => Some(("email-change-request", 3, Duration::from_secs(600))),
+        "/api/account/email/confirm" => {
+            Some(("email-change-confirm", 10, Duration::from_secs(300)))
+        }
         "/api/setup" => Some(("setup", 10, Duration::from_secs(300))),
         "/oauth/token" => Some(("oauth-token", 30, Duration::from_secs(60))),
         "/oauth/authorize" => Some(("oauth-authorize", 120, Duration::from_secs(60))),
