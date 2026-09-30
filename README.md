@@ -22,6 +22,8 @@ Auctor uses a global user model. A user keeps the same identity whether they are
 - crates/auctor-server: HTTP server and future OAuth/OIDC endpoints.
 - docs/architecture.md: architecture and protocol roadmap.
 - docs/security.md: security boundaries and non-goals.
+- integrations/wordpress/auctor-sso: lightweight WordPress OAuth 2.0 + PKCE integration.
+- integrations/nextcloud/auctor-sso: lightweight Nextcloud OAuth 2.0 + PKCE integration.
 
 ## Current capabilities
 

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+  <id>auctor_sso</id>
+  <name>Auctor SSO</name>
+  <summary>Sign in to Nextcloud with Auctor using OAuth 2.0 Authorization Code + PKCE.</summary>
+  <description>Lightweight Auctor integration for Nextcloud with stable subject binding, optional user provisioning, and optional SSO-only Web login.</description>
+  <version>0.2.0</version>
+  <licence>apache</licence>
+  <author>Auctor</author>
+  <namespace>AuctorSso</namespace>
+  <category>security</category>
+  <dependencies>
+    <nextcloud min-version="31" max-version="31"/>
+  </dependencies>
+</info>
