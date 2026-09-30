@@ -24,7 +24,7 @@ use anyhow::Context;
 use axum::{Json, Router, extract::DefaultBodyLimit, middleware, routing::get};
 use serde::Serialize;
 use sqlx::PgPool;
-use std::{env, net::SocketAddr, path::PathBuf};
+use std::{env, net::SocketAddr, path::PathBuf, sync::Arc};
 use tower_http::{
     services::{ServeDir, ServeFile},
     trace::TraceLayer,
@@ -40,6 +40,7 @@ pub struct AppState {
     pub setup_token: Option<String>,
     pub setup_token_path: PathBuf,
     pub rate_limiter: security::RateLimiter,
+    pub oidc_signer: Arc<oauth::OidcSigner>,
 }
 
 #[derive(Serialize)]
@@ -57,14 +58,6 @@ async fn health() -> Json<Health<'static>> {
     })
 }
 
-async fn discovery() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "status": "oauth_only",
-        "message": "OAuth 2.0 Authorization Code + PKCE is enabled. OpenID Connect ID tokens are not enabled yet.",
-        "oauth_authorization_server_metadata": "/.well-known/oauth-authorization-server"
-    }))
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -78,6 +71,7 @@ async fn main() -> anyhow::Result<()> {
     let db = db::connect(&database_url).await?;
     db::bootstrap_admin(&db).await?;
     let (setup_token, setup_token_path) = db::ensure_setup_token(&db).await?;
+    let oidc_signer = Arc::new(oauth::OidcSigner::load_or_create()?);
 
     let state = AppState {
         db,
@@ -96,6 +90,7 @@ async fn main() -> anyhow::Result<()> {
         setup_token,
         setup_token_path,
         rate_limiter: security::RateLimiter::new(),
+        oidc_signer,
     };
 
     let api = Router::new()
@@ -122,7 +117,10 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/health", get(health))
-        .route("/.well-known/openid-configuration", get(discovery))
+        .route(
+            "/.well-known/openid-configuration",
+            get(oauth::openid_metadata),
+        )
         .merge(oauth::router())
         .nest("/api", api)
         .nest_service("/assets", ServeDir::new(assets_dir))

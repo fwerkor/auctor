@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically synchronize Auctor group membership to Incus authorization
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=incus-auctor-rbac-sync.service
+
+[Install]
+WantedBy=timers.target

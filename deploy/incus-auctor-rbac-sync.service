@@ -1,0 +1,8 @@
+[Unit]
+Description=Synchronize Auctor groups to Incus project authorization
+After=incus.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/incus-auctor-rbac sync

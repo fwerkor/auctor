@@ -18,6 +18,8 @@ struct ApplicationRow {
     name: String,
     app_type: String,
     redirect_uris: Value,
+    allowed_roles: Value,
+    allowed_groups: Value,
     status: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -30,6 +32,10 @@ struct CreateApplication {
     app_type: String,
     #[serde(default)]
     redirect_uris: Vec<String>,
+    #[serde(default)]
+    allowed_roles: Vec<String>,
+    #[serde(default)]
+    allowed_groups: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -38,6 +44,8 @@ struct UpdateApplication {
     client_id: Option<String>,
     app_type: Option<String>,
     redirect_uris: Option<Vec<String>>,
+    allowed_roles: Option<Vec<String>>,
+    allowed_groups: Option<Vec<String>>,
     status: Option<String>,
 }
 
@@ -61,7 +69,7 @@ async fn list_applications(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     require_admin(&state, &headers).await?;
     let rows: Vec<ApplicationRow> = sqlx::query_as(
-        "SELECT id,client_id,name,app_type,redirect_uris,status,created_at,updated_at
+        "SELECT id,client_id,name,app_type,redirect_uris,allowed_roles,allowed_groups,status,created_at,updated_at
          FROM applications
          ORDER BY lower(name),created_at",
     )
@@ -78,7 +86,7 @@ async fn get_application(
 ) -> Result<Json<ApplicationRow>, StatusCode> {
     require_admin(&state, &headers).await?;
     let row: ApplicationRow = sqlx::query_as(
-        "SELECT id,client_id,name,app_type,redirect_uris,status,created_at,updated_at
+        "SELECT id,client_id,name,app_type,redirect_uris,allowed_roles,allowed_groups,status,created_at,updated_at
          FROM applications WHERE id=$1",
     )
     .bind(id)
@@ -98,6 +106,8 @@ async fn create_application(
     validate_name(&payload.name)?;
     validate_type(&payload.app_type)?;
     validate_redirect_uris(&payload.redirect_uris)?;
+    validate_access_names(&payload.allowed_roles)?;
+    validate_access_names(&payload.allowed_groups)?;
 
     let client_id = match payload.client_id.as_deref().map(str::trim) {
         Some(value) if !value.is_empty() => {
@@ -108,13 +118,15 @@ async fn create_application(
     };
 
     let id: Uuid = sqlx::query_scalar(
-        "INSERT INTO applications(client_id,name,app_type,redirect_uris)
-         VALUES($1,$2,$3,$4) RETURNING id",
+        "INSERT INTO applications(client_id,name,app_type,redirect_uris,allowed_roles,allowed_groups)
+         VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
     )
     .bind(&client_id)
     .bind(payload.name.trim())
     .bind(payload.app_type.trim())
     .bind(json!(payload.redirect_uris))
+    .bind(json!(payload.allowed_roles))
+    .bind(json!(payload.allowed_groups))
     .fetch_one(&state.db)
     .await
     .map_err(|_| StatusCode::CONFLICT)?;
@@ -153,6 +165,12 @@ async fn update_application(
     if let Some(redirect_uris) = &payload.redirect_uris {
         validate_redirect_uris(redirect_uris)?;
     }
+    if let Some(allowed_roles) = &payload.allowed_roles {
+        validate_access_names(allowed_roles)?;
+    }
+    if let Some(allowed_groups) = &payload.allowed_groups {
+        validate_access_names(allowed_groups)?;
+    }
     if let Some(status) = &payload.status {
         if status != "active" && status != "disabled" {
             return Err(StatusCode::BAD_REQUEST);
@@ -165,7 +183,9 @@ async fn update_application(
            client_id=COALESCE($3,client_id),
            app_type=COALESCE($4,app_type),
            redirect_uris=COALESCE($5,redirect_uris),
-           status=COALESCE($6,status),
+           allowed_roles=COALESCE($6,allowed_roles),
+           allowed_groups=COALESCE($7,allowed_groups),
+           status=COALESCE($8,status),
            updated_at=now()
          WHERE id=$1",
     )
@@ -174,6 +194,8 @@ async fn update_application(
     .bind(payload.client_id.as_deref().map(str::trim))
     .bind(payload.app_type.as_deref().map(str::trim))
     .bind(payload.redirect_uris.as_ref().map(|uris| json!(uris)))
+    .bind(payload.allowed_roles.as_ref().map(|items| json!(items)))
+    .bind(payload.allowed_groups.as_ref().map(|items| json!(items)))
     .bind(payload.status.as_deref())
     .execute(&state.db)
     .await
@@ -192,6 +214,8 @@ async fn update_application(
             "client_id": payload.client_id,
             "app_type": payload.app_type,
             "redirect_uris": payload.redirect_uris,
+            "allowed_roles": payload.allowed_roles,
+            "allowed_groups": payload.allowed_groups,
             "status": payload.status
         }),
     )
@@ -229,6 +253,21 @@ async fn delete_application(
     )
     .await?;
     Ok(Json(json!({"ok": true})))
+}
+
+fn validate_access_names(values: &[String]) -> Result<(), StatusCode> {
+    if values.len() > 64 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    for value in values {
+        let value = value.trim();
+        if value.is_empty() || value.len() > 160 {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    }
+
+    Ok(())
 }
 
 fn validate_name(name: &str) -> Result<(), StatusCode> {
