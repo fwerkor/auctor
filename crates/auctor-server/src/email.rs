@@ -36,6 +36,7 @@ pub async fn send_verification_code(
     let (subject, action) = match purpose {
         "registration" => ("Verify your Auctor account", "complete your registration"),
         "email_change" => ("Verify your new email address", "change your email address"),
+        "password_reset" => ("Reset your Auctor password", "reset your password"),
         _ => bail!("unsupported verification purpose"),
     };
     let body = format!(

@@ -12,6 +12,7 @@ mod db;
 mod email;
 mod model;
 mod oauth;
+mod password_recovery;
 mod registration;
 mod security;
 mod settings;
@@ -108,6 +109,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(admin_sessions::router())
         .merge(avatar::router())
         .merge(branding::router())
+        .merge(password_recovery::router())
         .merge(registration::router())
         .merge(settings::router())
         .merge(setup::router())

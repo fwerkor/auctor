@@ -20,7 +20,7 @@ type Props = {
   onAuthenticated: () => Promise<void>
 }
 
-type Mode = 'login' | 'register' | 'verify'
+type Mode = 'login' | 'register' | 'verify' | 'forgot' | 'reset'
 
 export function LoginPage({ onAuthenticated }: Props) {
   const { brand } = useBrand()
@@ -40,6 +40,10 @@ export function LoginPage({ onAuthenticated }: Props) {
   })
   const [verificationEmail, setVerificationEmail] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
+  const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [recoveryCode, setRecoveryCode] = useState('')
+  const [recoveryPassword, setRecoveryPassword] = useState('')
+  const [recoveryConfirm, setRecoveryConfirm] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -125,12 +129,60 @@ export function LoginPage({ onAuthenticated }: Props) {
     }
   }
 
+  async function submitForgotPassword(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      await api.requestPasswordReset(recoveryEmail)
+      setRecoveryCode('')
+      setRecoveryPassword('')
+      setRecoveryConfirm('')
+      setMode('reset')
+      setNotice('If an active account uses that email address, a six-digit reset code was sent.')
+    } catch {
+      setError('Could not request a password reset. Try again shortly.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function submitPasswordReset(event: FormEvent) {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    if (recoveryPassword !== recoveryConfirm) {
+      setError('The passwords do not match.')
+      return
+    }
+    setBusy(true)
+    try {
+      await api.resetPassword(recoveryEmail, recoveryCode, recoveryPassword)
+      setUsername(recoveryEmail)
+      setPassword('')
+      setRecoveryCode('')
+      setRecoveryPassword('')
+      setRecoveryConfirm('')
+      setMode('login')
+      setNotice('Password reset. You can sign in now.')
+    } catch {
+      setError('The reset code is invalid or expired, or the new password is too short.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const title =
     mode === 'login'
       ? 'Sign in to ' + brand.site_name
       : mode === 'register'
         ? 'Create your ' + brand.site_name + ' account'
-        : 'Verify your email'
+        : mode === 'verify'
+          ? 'Verify your email'
+          : mode === 'forgot'
+            ? 'Recover your account'
+            : 'Set a new password'
 
   return (
     <Box
@@ -181,8 +233,8 @@ export function LoginPage({ onAuthenticated }: Props) {
                     fullWidth
                   />
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    {registration.enabled ? (
-                      <Stack direction="row" spacing={1.5}>
+                    <Stack direction="row" spacing={1.5}>
+                      {registration.enabled && (
                         <Link
                           component="button"
                           type="button"
@@ -195,26 +247,37 @@ export function LoginPage({ onAuthenticated }: Props) {
                         >
                           Create account
                         </Link>
-                        {registration.require_email_verification && (
-                          <Link
-                            component="button"
-                            type="button"
-                            underline="hover"
-                            onClick={() => {
-                              setError('')
-                              setNotice('')
-                              setVerificationEmail('')
-                              setVerificationCode('')
-                              setMode('verify')
-                            }}
-                          >
-                            Verify email
-                          </Link>
-                        )}
-                      </Stack>
-                    ) : (
-                      <Box />
-                    )}
+                      )}
+                      {registration.enabled && registration.require_email_verification && (
+                        <Link
+                          component="button"
+                          type="button"
+                          underline="hover"
+                          onClick={() => {
+                            setError('')
+                            setNotice('')
+                            setVerificationEmail('')
+                            setVerificationCode('')
+                            setMode('verify')
+                          }}
+                        >
+                          Verify email
+                        </Link>
+                      )}
+                      <Link
+                        component="button"
+                        type="button"
+                        underline="hover"
+                        onClick={() => {
+                          setError('')
+                          setNotice('')
+                          setRecoveryEmail(username.includes('@') ? username : '')
+                          setMode('forgot')
+                        }}
+                      >
+                        Forgot password?
+                      </Link>
+                    </Stack>
                     <Button
                       type="submit"
                       variant="contained"
@@ -349,6 +412,113 @@ export function LoginPage({ onAuthenticated }: Props) {
                       disabled={busy || !verificationEmail || verificationCode.length !== 6}
                     >
                       {busy ? <CircularProgress size={20} color="inherit" /> : 'Verify email'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            )}
+
+            {mode === 'forgot' && (
+              <Box component="form" onSubmit={submitForgotPassword}>
+                <Stack spacing={2}>
+                  <Typography color="text.secondary">
+                    Enter the email address on your account. If it matches an active account, we will
+                    send a six-digit reset code.
+                  </Typography>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    autoComplete="email"
+                    autoFocus
+                  />
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Link
+                      component="button"
+                      type="button"
+                      underline="hover"
+                      onClick={() => {
+                        setError('')
+                        setNotice('')
+                        setMode('login')
+                      }}
+                    >
+                      Back to sign in
+                    </Link>
+                    <Button type="submit" variant="contained" disabled={busy || !recoveryEmail}>
+                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Send reset code'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            )}
+
+            {mode === 'reset' && (
+              <Box component="form" onSubmit={submitPasswordReset}>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                  <TextField
+                    label="Reset code"
+                    value={recoveryCode}
+                    onChange={(e) =>
+                      setRecoveryCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                    }
+                    inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                    autoFocus
+                  />
+                  <TextField
+                    label="New password"
+                    type="password"
+                    value={recoveryPassword}
+                    onChange={(e) => setRecoveryPassword(e.target.value)}
+                    autoComplete="new-password"
+                    helperText="Use at least 12 characters."
+                  />
+                  <TextField
+                    label="Confirm new password"
+                    type="password"
+                    value={recoveryConfirm}
+                    onChange={(e) => setRecoveryConfirm(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Button
+                      variant="text"
+                      disabled={busy || !recoveryEmail}
+                      onClick={async () => {
+                        setError('')
+                        setNotice('')
+                        try {
+                          await api.requestPasswordReset(recoveryEmail)
+                          setNotice(
+                            'If an active account uses that email address, a new reset code was sent.',
+                          )
+                        } catch {
+                          setError('Could not request a new reset code.')
+                        }
+                      }}
+                    >
+                      Resend code
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={
+                        busy ||
+                        !recoveryEmail ||
+                        recoveryCode.length !== 6 ||
+                        recoveryPassword.length < 12 ||
+                        !recoveryConfirm
+                      }
+                    >
+                      {busy ? <CircularProgress size={20} color="inherit" /> : 'Reset password'}
                     </Button>
                   </Stack>
                 </Stack>

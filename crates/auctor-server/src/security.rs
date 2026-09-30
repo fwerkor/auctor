@@ -57,6 +57,8 @@ pub async fn middleware(State(state): State<AppState>, request: Request, next: N
         "/api/auth/register" => Some(("register", 5, Duration::from_secs(300))),
         "/api/auth/register/verify" => Some(("register-verify", 10, Duration::from_secs(300))),
         "/api/auth/register/resend" => Some(("register-resend", 3, Duration::from_secs(600))),
+        "/api/auth/password/forgot" => Some(("password-forgot", 3, Duration::from_secs(600))),
+        "/api/auth/password/reset" => Some(("password-reset", 10, Duration::from_secs(600))),
         "/api/account/email/request" => Some(("email-change-request", 3, Duration::from_secs(600))),
         "/api/account/email/confirm" => {
             Some(("email-change-confirm", 10, Duration::from_secs(300)))

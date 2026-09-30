@@ -79,6 +79,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
+  requestPasswordReset: (email: string) =>
+    request<{ ok: boolean }>('/api/auth/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    request<{ ok: boolean }>('/api/auth/password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, new_password: newPassword }),
+    }),
   login: (username: string, password: string) =>
     request<{ ok: boolean }>('/api/auth/login', {
       method: 'POST',
