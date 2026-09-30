@@ -152,11 +152,16 @@ PROJECT_SCOPED = [
 ]
 
 def authorize(details, object, entitlement):
+  # Incus 6.22 passes RequestDetails to Starlark through an anonymous pointer.
+  # Its Starlark marshaler does not flatten anonymous pointer fields, so the
+  # request fields live under details.RequestDetails rather than details directly.
+  request = details.RequestDetails
+
   # Keep local unix/TLS administration unchanged. This policy is for Auctor OIDC identities.
-  if details.Protocol != "oidc":
+  if request.Protocol != "oidc":
     return True
 
-  username = details.Username
+  username = request.Username
   if username in ADMINS:
     return True
 
