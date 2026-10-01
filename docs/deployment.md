@@ -58,6 +58,25 @@ Argon2 rather than in plaintext. Changing an existing account email always requi
 current password and a verification code sent to the new address, regardless of whether
 registration verification is enabled.
 
+## External account sign-in
+
+Auctor can link external identities to existing global users. External providers are
+login credentials only: an OAuth callback never creates an Auctor user and never links
+by provider username or email. A user must first sign in with an existing Auctor account,
+then explicitly bind the provider under **My account → Connected accounts**.
+
+GitHub is supported through a GitHub OAuth App. Configure it under
+**Settings → Registration and email → GitHub sign-in** by entering the OAuth Client ID
+and Client Secret and enabling GitHub sign-in. Set the OAuth App callback URL to the
+callback URL shown there:
+
+`https://<your-auctor-host>/api/auth/external/github/callback`
+
+The host is derived from Auctor's canonical site URL. GitHub access tokens are used only
+for the callback exchange and `/user` lookup and are not persisted. Auctor stores the
+stable GitHub numeric user ID plus display metadata. An unbound GitHub identity is
+rejected and directed to sign in with an existing Auctor account first.
+
 ## WordPress SSO
 
 The official plugin lives under integrations/wordpress/auctor-sso.

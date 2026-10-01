@@ -40,6 +40,7 @@ Auctor uses a global user model. A user keeps the same identity whether they are
 - Optional mandatory registration email verification with expiring, attempt-limited Argon2-backed codes.
 - Configurable SMTP transport with STARTTLS or implicit TLS and a built-in test-email action.
 - Verified account email changes: current password plus a code delivered to the new address.
+- Explicit external-account binding and sign-in (GitHub first), with no third-party auto-registration.
 
 ## Status
 

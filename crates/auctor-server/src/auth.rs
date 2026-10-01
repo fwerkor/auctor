@@ -139,6 +139,20 @@ async fn login(
             .into_response();
     }
 
+    let cookie = match issue_session_cookie(&state, &headers, row.0).await {
+        Ok(cookie) => cookie,
+        Err(status) => return status.into_response(),
+    };
+    let mut response = Json(serde_json::json!({"ok":true})).into_response();
+    response.headers_mut().insert(header::SET_COOKIE, cookie);
+    response
+}
+
+pub async fn issue_session_cookie(
+    state: &AppState,
+    headers: &HeaderMap,
+    user_id: Uuid,
+) -> Result<HeaderValue, StatusCode> {
     let mut raw = [0u8; 32];
     rand::rng().fill_bytes(&mut raw);
     let token = URL_SAFE_NO_PAD.encode(raw);
@@ -149,19 +163,16 @@ async fn login(
         .and_then(|v| v.to_str().ok())
         .map(str::to_owned);
 
-    if sqlx::query(
+    sqlx::query(
         "INSERT INTO sessions(user_id,token_hash,expires_at,user_agent) VALUES ($1,$2,$3,$4)",
     )
-    .bind(row.0)
+    .bind(user_id)
     .bind(hash)
     .bind(expires)
     .bind(user_agent)
     .execute(&state.db)
     .await
-    .is_err()
-    {
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-    }
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mut cookie = format!(
         "{}={}; Path=/; HttpOnly; SameSite=Lax; Max-Age={}",
@@ -172,12 +183,7 @@ async fn login(
     if state.secure_cookies {
         cookie.push_str("; Secure");
     }
-    let mut response = Json(serde_json::json!({"ok":true})).into_response();
-    response.headers_mut().insert(
-        header::SET_COOKIE,
-        HeaderValue::from_str(&cookie).expect("valid session cookie"),
-    );
-    response
+    HeaderValue::from_str(&cookie).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Response {

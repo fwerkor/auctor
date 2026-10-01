@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Divider,
   FormControlLabel,
   Stack,
   IconButton,
@@ -44,8 +45,12 @@ export function BrandingPage() {
     smtp_from_email: '',
     smtp_from_name: 'Auctor',
     smtp_password_configured: false,
+    github_oauth_enabled: false,
+    github_oauth_client_id: '',
+    github_oauth_client_secret_configured: false,
   })
   const [smtpPassword, setSmtpPassword] = useState('')
+  const [githubClientSecret, setGithubClientSecret] = useState('')
   const [authSaved, setAuthSaved] = useState(false)
   const [authError, setAuthError] = useState(false)
   const [authBusy, setAuthBusy] = useState(false)
@@ -69,6 +74,7 @@ export function BrandingPage() {
     const result = await api.authSettings()
     setAuthDraft(result)
     setSmtpPassword('')
+    setGithubClientSecret('')
   }
 
   useEffect(() => {
@@ -126,10 +132,13 @@ export function BrandingPage() {
         smtp_username: authDraft.smtp_username.trim(),
         smtp_from_email: authDraft.smtp_from_email.trim(),
         smtp_from_name: authDraft.smtp_from_name.trim(),
+        github_oauth_client_id: authDraft.github_oauth_client_id.trim(),
         ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
+        ...(githubClientSecret ? { github_oauth_client_secret: githubClientSecret } : {}),
       })
       setAuthDraft(result)
       setSmtpPassword('')
+      setGithubClientSecret('')
       setAuthSaved(true)
       return true
     } catch {
@@ -375,6 +384,68 @@ export function BrandingPage() {
               label="Require email verification for registration"
             />
 
+            <Divider />
+            <Box>
+              <Typography variant="subtitle1" fontWeight={600}>
+                GitHub sign-in
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+                Users can sign in with GitHub only after linking GitHub to an existing Auctor account.
+                An unknown GitHub identity never creates an account.
+              </Typography>
+            </Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={authDraft.github_oauth_enabled}
+                  onChange={(event) =>
+                    setAuthDraft({ ...authDraft, github_oauth_enabled: event.target.checked })
+                  }
+                />
+              }
+              label="Enable GitHub sign-in"
+            />
+            <TextField
+              label="GitHub OAuth Client ID"
+              value={authDraft.github_oauth_client_id}
+              onChange={(event) =>
+                setAuthDraft({ ...authDraft, github_oauth_client_id: event.target.value })
+              }
+              autoComplete="off"
+              helperText="Create an OAuth App in GitHub and use this Auctor site's callback URL."
+            />
+            <TextField
+              label="GitHub OAuth Client Secret"
+              type="password"
+              value={githubClientSecret}
+              onChange={(event) => setGithubClientSecret(event.target.value)}
+              autoComplete="new-password"
+              placeholder={
+                authDraft.github_oauth_client_secret_configured
+                  ? 'Leave blank to keep current secret'
+                  : ''
+              }
+              helperText={
+                authDraft.github_oauth_client_secret_configured
+                  ? 'A client secret is configured. Leave this blank unless you want to replace it.'
+                  : 'No client secret is configured.'
+              }
+            />
+            <Alert severity="info">
+              Callback URL: {(draft.site_url || brand.site_url || 'https://account.example.com').replace(/\/$/, '')}
+              /api/auth/external/github/callback
+            </Alert>
+
+            <Divider />
+            <Box>
+              <Typography variant="subtitle1" fontWeight={600}>
+                SMTP
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+                Used for registration verification, email changes, and password recovery.
+              </Typography>
+            </Box>
+
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
               <TextField
                 label="SMTP host"
@@ -478,7 +549,10 @@ export function BrandingPage() {
                   authDraft.smtp_port < 1 ||
                   authDraft.smtp_port > 65535 ||
                   (authDraft.registration_require_email_verification &&
-                    (!authDraft.smtp_host.trim() || !authDraft.smtp_from_email.trim()))
+                    (!authDraft.smtp_host.trim() || !authDraft.smtp_from_email.trim())) ||
+                  (authDraft.github_oauth_enabled &&
+                    (!authDraft.github_oauth_client_id.trim() ||
+                      (!authDraft.github_oauth_client_secret_configured && !githubClientSecret)))
                 }
                 onClick={saveAuthSettings}
               >

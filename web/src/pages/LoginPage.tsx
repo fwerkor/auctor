@@ -13,11 +13,12 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined'
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
+import GitHubIcon from '@mui/icons-material/GitHub'
 import { FormEvent, useEffect, useState } from 'react'
 import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
 import { ThemeModeButton } from '../colorMode'
-import type { RegistrationConfig } from '../types'
+import type { ExternalProvider, RegistrationConfig } from '../types'
 
 type Props = {
   onAuthenticated: () => Promise<void>
@@ -32,6 +33,7 @@ export function LoginPage({ onAuthenticated }: Props) {
     enabled: false,
     require_email_verification: false,
   })
+  const [externalProviders, setExternalProviders] = useState<ExternalProvider[]>([])
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [registerForm, setRegisterForm] = useState({
@@ -53,6 +55,22 @@ export function LoginPage({ onAuthenticated }: Props) {
 
   useEffect(() => {
     api.registrationConfig().then(setRegistration).catch(() => undefined)
+    api.externalProviders().then((result) => setExternalProviders(result.items)).catch(() => undefined)
+
+    const params = new URLSearchParams(window.location.search)
+    const externalError = params.get('external_error')
+    if (externalError) {
+      const messages: Record<string, string> = {
+        unbound_identity: 'This GitHub account is not linked to an existing account. Sign in first, then link GitHub from My account.',
+        provider_denied: 'GitHub sign-in was cancelled.',
+        provider_unavailable: 'GitHub sign-in is temporarily unavailable.',
+        provider_failed: 'GitHub sign-in could not be completed. Try again.',
+      }
+      setError(messages[externalError] ?? 'GitHub sign-in could not be completed.')
+      params.delete('external_error')
+      const next = params.toString()
+      window.history.replaceState(null, '', window.location.pathname + (next ? '?' + next : ''))
+    }
   }, [])
 
   async function submitLogin(event: FormEvent) {
@@ -244,6 +262,36 @@ export function LoginPage({ onAuthenticated }: Props) {
                   >
                     {busy ? <CircularProgress size={20} color="inherit" /> : 'Sign in'}
                   </Button>
+                  {externalProviders.some((provider) => provider.id === 'github') && (
+                    <>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.08em' }}
+                      >
+                        or
+                      </Typography>
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="large"
+                        fullWidth
+                        startIcon={<GitHubIcon />}
+                        onClick={() => {
+                          const next = new URLSearchParams(window.location.search).get('continue')
+                          window.location.assign(
+                            api.externalAuthStartUrl(
+                              'github',
+                              'login',
+                              next && next.startsWith('/') && !next.startsWith('//') ? next : '/',
+                            ),
+                          )
+                        }}
+                      >
+                        Continue with GitHub
+                      </Button>
+                    </>
+                  )}
                   <Box
                     sx={{
                       display: 'grid',

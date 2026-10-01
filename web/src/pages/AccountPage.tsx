@@ -1,10 +1,12 @@
 import {
   DevicesRounded,
   KeyRounded,
+  LinkRounded,
   LogoutRounded,
   PersonRounded,
   SecurityRounded,
 } from '@mui/icons-material'
+import GitHubIcon from '@mui/icons-material/GitHub'
 import {
   Alert,
   Box,
@@ -22,7 +24,7 @@ import { api } from '../api'
 import { BrandMark, useBrand } from '../components/Branding'
 import { ThemeModeButton } from '../colorMode'
 import { UserAvatar } from '../components/UserAvatar'
-import type { Me, Session } from '../types'
+import type { ExternalIdentity, ExternalProvider, Me, Session } from '../types'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -54,6 +56,10 @@ export function AccountPage({
   const { brand } = useBrand()
   const [displayName, setDisplayName] = useState(me.display_name)
   const [sessions, setSessions] = useState<Session[]>([])
+  const [externalProviders, setExternalProviders] = useState<ExternalProvider[]>([])
+  const [externalIdentities, setExternalIdentities] = useState<ExternalIdentity[]>([])
+  const [externalNotice, setExternalNotice] = useState('')
+  const [externalError, setExternalError] = useState('')
   const [profileNotice, setProfileNotice] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwords, setPasswords] = useState({
@@ -71,10 +77,45 @@ export function AccountPage({
     setSessions(result.items)
   }, [])
 
+  const loadExternalAccounts = useCallback(async () => {
+    const [providers, identities] = await Promise.all([
+      api.externalProviders(),
+      api.externalIdentities(),
+    ])
+    setExternalProviders(providers.items)
+    setExternalIdentities(identities.items)
+  }, [])
+
   useEffect(() => {
     setDisplayName(me.display_name)
     loadSessions()
-  }, [me.display_name, loadSessions])
+    loadExternalAccounts().catch(() => undefined)
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('external_result') === 'bound') {
+      setExternalNotice('GitHub account linked.')
+    }
+    const errorCode = params.get('external_error')
+    if (errorCode) {
+      const messages: Record<string, string> = {
+        identity_in_use: 'That GitHub account is already linked to another Auctor account.',
+        provider_already_bound: 'A different GitHub account is already linked here. Unlink it first.',
+        reauth_required: 'Your Auctor session changed while linking GitHub. Sign in again and retry.',
+        invalid_flow: 'The GitHub linking request is invalid. Start the link again.',
+        provider_denied: 'GitHub linking was cancelled.',
+        provider_unavailable: 'GitHub linking is temporarily unavailable.',
+        provider_failed: 'GitHub linking could not be completed. Try again.',
+      }
+      setExternalError(messages[errorCode] ?? 'GitHub linking could not be completed.')
+    }
+    if (params.has('external_result') || params.has('external_error') || params.has('provider')) {
+      params.delete('external_result')
+      params.delete('provider')
+      params.delete('external_error')
+      const next = params.toString()
+      window.history.replaceState(null, '', window.location.pathname + (next ? '?' + next : ''))
+    }
+  }, [me.display_name, loadSessions, loadExternalAccounts])
 
   async function saveProfile() {
     await api.updateProfile(displayName)
@@ -170,6 +211,139 @@ export function AccountPage({
                 ))}
               </Stack>
             </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: 2 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" mb={2.5}>
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: 1.5,
+                bgcolor: 'action.hover',
+                color: 'secondary.main',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <LinkRounded />
+            </Box>
+            <Box>
+              <Typography variant="h6">Connected accounts</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Linked providers can sign in to this existing account. They can never create an account here.
+              </Typography>
+            </Box>
+          </Stack>
+
+          {externalNotice && (
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExternalNotice('')}>
+              {externalNotice}
+            </Alert>
+          )}
+          {externalError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setExternalError('')}>
+              {externalError}
+            </Alert>
+          )}
+
+          <Stack divider={<Divider flexItem />}>
+            {Array.from(
+              new Map(
+                [
+                  ...externalProviders,
+                  ...externalIdentities.map((identity) => ({
+                    id: identity.provider,
+                    name: identity.provider === 'github' ? 'GitHub' : identity.provider,
+                  })),
+                ].map((provider) => [provider.id, provider]),
+              ).values(),
+            ).map((provider) => {
+              const identity = externalIdentities.find((item) => item.provider === provider.id)
+              return (
+                <Stack
+                  key={provider.id}
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  alignItems={{ sm: 'center' }}
+                  sx={{ py: 1.5 }}
+                >
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2.5,
+                      bgcolor: 'action.hover',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flex: '0 0 auto',
+                    }}
+                  >
+                    {provider.id === 'github' ? <GitHubIcon /> : <LinkRounded fontSize="small" />}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography fontWeight={600}>{provider.name}</Typography>
+                      <Chip
+                        label={identity ? 'Linked' : 'Not linked'}
+                        size="small"
+                        color={identity ? 'success' : 'default'}
+                        variant="outlined"
+                      />
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {identity
+                        ? identity.login
+                          ? '@' + identity.login
+                          : 'Provider account linked'
+                        : 'Link an existing provider account for faster sign-in.'}
+                    </Typography>
+                  </Box>
+                  {identity ? (
+                    <Button
+                      color="error"
+                      size="small"
+                      onClick={async () => {
+                        setExternalError('')
+                        try {
+                          await api.unlinkExternalIdentity(provider.id)
+                          setExternalNotice(provider.name + ' account unlinked.')
+                          await loadExternalAccounts()
+                        } catch {
+                          setExternalError('Could not unlink ' + provider.name + '.')
+                        }
+                      }}
+                    >
+                      Unlink
+                    </Button>
+                  ) : (
+                    provider.id === 'github' &&
+                    externalProviders.some((item) => item.id === 'github') && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<GitHubIcon />}
+                        onClick={() =>
+                          window.location.assign(
+                            api.externalAuthStartUrl('github', 'bind', '/account'),
+                          )
+                        }
+                      >
+                        Link GitHub
+                      </Button>
+                    )
+                  )}
+                </Stack>
+              )
+            })}
+            {!externalProviders.length && !externalIdentities.length && (
+              <Typography color="text.secondary" sx={{ py: 1 }}>
+                No external sign-in providers are configured.
+              </Typography>
+            )}
           </Stack>
         </CardContent>
       </Card>

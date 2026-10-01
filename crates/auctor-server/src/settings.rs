@@ -19,6 +19,9 @@ pub struct AuthSettings {
     pub smtp_from_email: String,
     pub smtp_from_name: String,
     pub smtp_password_configured: bool,
+    pub github_oauth_enabled: bool,
+    pub github_oauth_client_id: String,
+    pub github_oauth_client_secret_configured: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -32,6 +35,9 @@ struct UpdateAuthSettings {
     smtp_password: Option<String>,
     smtp_from_email: String,
     smtp_from_name: String,
+    github_oauth_enabled: bool,
+    github_oauth_client_id: String,
+    github_oauth_client_secret: Option<String>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -54,7 +60,10 @@ async fn load(db: &sqlx::PgPool) -> Result<AuthSettings, sqlx::Error> {
            smtp_username,
            smtp_from_email,
            smtp_from_name,
-           (smtp_password <> '') AS smtp_password_configured
+           (smtp_password <> '') AS smtp_password_configured,
+           github_oauth_enabled,
+           github_oauth_client_id,
+           (github_oauth_client_secret <> '') AS github_oauth_client_secret_configured
          FROM site_settings WHERE singleton=true",
     )
     .fetch_one(db)
@@ -101,6 +110,33 @@ async fn update_settings(
         return Err(StatusCode::BAD_REQUEST);
     }
 
+    let github_client_id = payload.github_oauth_client_id.trim();
+    if github_client_id.len() > 255 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let github_client_secret = payload
+        .github_oauth_client_secret
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if github_client_secret.is_some_and(|value| value.len() > 1024) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    if payload.github_oauth_enabled {
+        let (site_url, existing_secret): (String, bool) = sqlx::query_as(
+            "SELECT site_url,(github_oauth_client_secret <> '') FROM site_settings WHERE singleton=true",
+        )
+        .fetch_one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if site_url.trim().is_empty()
+            || github_client_id.is_empty()
+            || (!existing_secret && github_client_secret.is_none())
+        {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    }
+
     let password = payload
         .smtp_password
         .as_deref()
@@ -118,6 +154,9 @@ async fn update_settings(
            smtp_password=COALESCE($7,smtp_password),
            smtp_from_email=$8,
            smtp_from_name=$9,
+           github_oauth_enabled=$10,
+           github_oauth_client_id=$11,
+           github_oauth_client_secret=COALESCE($12,github_oauth_client_secret),
            updated_at=now()
          WHERE singleton=true",
     )
@@ -130,6 +169,9 @@ async fn update_settings(
     .bind(password)
     .bind(&from_email)
     .bind(from_name)
+    .bind(payload.github_oauth_enabled)
+    .bind(github_client_id)
+    .bind(github_client_secret)
     .execute(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -147,7 +189,10 @@ async fn update_settings(
         "smtp_security": security,
         "smtp_username_configured": !username.is_empty(),
         "smtp_from_email": from_email,
-        "smtp_password_changed": password.is_some()
+        "smtp_password_changed": password.is_some(),
+        "github_oauth_enabled": payload.github_oauth_enabled,
+        "github_oauth_client_id_configured": !github_client_id.is_empty(),
+        "github_oauth_client_secret_changed": github_client_secret.is_some()
     }))
     .execute(&state.db)
     .await

@@ -108,6 +108,22 @@ export type RegistrationConfig = {
   require_email_verification: boolean
 }
 
+export type ExternalProvider = {
+  id: string
+  name: string
+}
+
+export type ExternalIdentity = {
+  provider: string
+  subject: string
+  login: string
+  display_name: string | null
+  avatar_url: string | null
+  profile_url: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type AuthSettings = {
   registration_enabled: boolean
   registration_require_email_verification: boolean
@@ -118,4 +134,7 @@ export type AuthSettings = {
   smtp_from_email: string
   smtp_from_name: string
   smtp_password_configured: boolean
+  github_oauth_enabled: boolean
+  github_oauth_client_id: string
+  github_oauth_client_secret_configured: boolean
 }

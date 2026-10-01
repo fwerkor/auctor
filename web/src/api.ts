@@ -1,4 +1,4 @@
-import type { Application, AuditEvent, AuthSettings, AvatarSettings, Branding, Group, Me, RegistrationConfig, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
+import type { Application, AuditEvent, AuthSettings, AvatarSettings, Branding, ExternalIdentity, ExternalProvider, Group, Me, RegistrationConfig, ReservedUsername, Role, Session, Stats, User, UserList } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -27,7 +27,12 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   authSettings: () => request<AuthSettings>('/api/admin/auth-settings'),
-  updateAuthSettings: (payload: Omit<AuthSettings, 'smtp_password_configured'> & { smtp_password?: string }) =>
+  updateAuthSettings: (
+    payload: Omit<
+      AuthSettings,
+      'smtp_password_configured' | 'github_oauth_client_secret_configured'
+    > & { smtp_password?: string; github_oauth_client_secret?: string },
+  ) =>
     request<AuthSettings>('/api/admin/auth-settings', {
       method: 'PUT',
       body: JSON.stringify(payload),
@@ -63,6 +68,19 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   me: () => request<Me>('/api/me'),
+  externalProviders: () =>
+    request<{ items: ExternalProvider[] }>('/api/auth/external/providers'),
+  externalIdentities: () =>
+    request<{ items: ExternalIdentity[] }>('/api/account/external-identities'),
+  unlinkExternalIdentity: (provider: string) =>
+    request<{ ok: boolean }>('/api/account/external-identities/' + encodeURIComponent(provider), {
+      method: 'DELETE',
+    }),
+  externalAuthStartUrl: (provider: string, intent: 'login' | 'bind', continueTo?: string) => {
+    const params = new URLSearchParams({ intent })
+    if (continueTo) params.set('continue', continueTo)
+    return '/api/auth/external/' + encodeURIComponent(provider) + '/start?' + params.toString()
+  },
   registrationConfig: () => request<RegistrationConfig>('/api/auth/registration-config'),
   register: (payload: { username: string; email: string; display_name: string; password: string }) =>
     request<{ id: string; verification_required: boolean }>('/api/auth/register', {
